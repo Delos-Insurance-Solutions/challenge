@@ -107,6 +107,7 @@ export const getBestQuotes = async(
 
     return bestQuotes;
   } catch (err) {
-    return 'There is been an error while getting the best quotes'
+    console.log("There is been an error while getting the best quotes")
+    return []
   }
 }
