@@ -1,6 +1,7 @@
 import * as dbService from "./dbservice";
 import { quotesError } from "./error";
-import { Users } from "../entities/Users";
+import { getQuotes } from "../integrations/quoteMocker";
+import { calculateInsuranceScore } from "../utils/helper";
 
 /*
  * ======
@@ -16,14 +17,18 @@ export const generateQuotes = async (
 ) => {
   try {
     const user = await findOrCreateUser(name, age, carModel, yearsOfExperience);
-
     const user_id = user.id;
 
-    await saveQuotes(user_id, [{ amount: 500 },
-        { amount: 600 },
-        { amount: 450 }]);
+    const ins_score = calculateInsuranceScore(age, yearsOfExperience);
+    const quotes = await getQuotes(ins_score);
+
+    if (!quotes || quotes.length === 0) {
+      return 'There are no quotes from mock api, hence an error while generating the quotes'
+    }
+
+    await saveQuotes(user_id, quotes);
     
-    return user_id;
+    return { user_id };
   } catch (err) {
     console.log("error : ", err);
     return 'There is been an error while generating the quotes'

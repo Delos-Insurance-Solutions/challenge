@@ -1,0 +1,28 @@
+{
+  "quotes": [
+    {
+      "id": 1,
+      "amount": 1500,
+      "score_range": {
+        "low_score": 100,
+        "max_score": 250
+      }
+    },
+    {
+      "id": 2,
+      "amount": 1600,
+      "score_range": {
+        "low_score": 150,
+        "max_score": 350
+      }
+    },
+    {
+      "id": 3,
+      "amount": 1450,
+      "score_range": {
+        "low_score": 300,
+        "max_score": 450
+      }
+    }
+  ]
+}
