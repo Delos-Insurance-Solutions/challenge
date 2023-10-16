@@ -1,6 +1,6 @@
 import * as dbService from "./dbservice";
 import { quotesError } from "./error";
-import { User } from "../entities/User";
+import { Users } from "../entities/Users";
 
 /*
  * ======
@@ -19,12 +19,13 @@ export const generateQuotes = async (
 
     const user_id = user.id;
 
-    await saveQuotes(user, [{ amount: 500 },
+    await saveQuotes(user_id, [{ amount: 500 },
         { amount: 600 },
         { amount: 450 }]);
     
     return user_id;
   } catch (err) {
+    console.log("error : ", err);
     return 'There is been an error while generating the quotes'
   }
 }
@@ -53,13 +54,13 @@ export const findOrCreateUser = async (
   return user;
 };
 
-export const saveQuote = async (user: User, amount: number) => {
+export const saveQuote = async (user_id: number, amount: number) => {
   // Checks
-  if (!user || !amount) {
+  if (!user_id || !amount) {
     throw quotesError.validation.missingfield;
   }
 
-  const quote = await dbService.saveQuote(user, amount);
+  const quote = await dbService.saveQuote(user_id, amount);
   if (!quote) {
     return;
   }
@@ -68,15 +69,15 @@ export const saveQuote = async (user: User, amount: number) => {
 };
 
 export const saveQuotes = async (
-  user: User,
+  user_id: number,
   quotesData: { amount: number }[]
 ) => {
   // Checks
-  if (!user || !quotesData) {
+  if (!user_id || !quotesData) {
     throw quotesError.validation.missingfield;
   }
 
-  const quotes = await dbService.saveQuotes(user, quotesData);
+  const quotes = await dbService.saveQuotes(user_id, quotesData);
 
   if (!quotes) {
     return;
@@ -92,14 +93,8 @@ export const getBestQuotes = async(
     if (!user_id) {
         throw quotesError.validation.missingfield;
     }
-
-    const user = await dbService.getUser(user_id);
-
-    if(!user) {
-        return
-    }
     
-    const bestQuotes = await dbService.getBestQuotes(user);
+    const bestQuotes = await dbService.getBestQuotes(user_id);
 
     if(!bestQuotes) {
         return;

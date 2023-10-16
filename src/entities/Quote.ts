@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from './User';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class Quote {
@@ -9,7 +8,6 @@ export class Quote {
   @Column()
   amount!: number;
 
-  @ManyToOne(() => User, user => user.quote)
-  @JoinColumn({ name: 'userId' })
-  user!: User;
+  @Column()
+  user_id!: number;
 }

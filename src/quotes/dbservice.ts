@@ -1,6 +1,6 @@
 import { quotesError } from "./error";
 import { createConnection, getRepository } from "typeorm";
-import { User } from "../entities/User";
+import { Users } from "../entities/Users";
 import { Quote } from "../entities/Quote";
 
 /*
@@ -14,15 +14,15 @@ export async function findOrCreateUser(
   age: number,
   carModel: string,
   yearsOfExperience: number
-): Promise<User> {
-  const userRepository = getRepository(User);
+): Promise<Users> {
+  const userRepository = getRepository(Users);
 
   // Check if the user already exists
   let user = await userRepository.findOne({ where: { name } });
 
   // If not, create a new user
   if (!user) {
-    user = new User();
+    user = new Users();
     user.name = name;
     user.age = age;
     user.carModel = carModel;
@@ -35,25 +35,41 @@ export async function findOrCreateUser(
   return user;
 }
 
+export async function findUsers() {
+  const userRepository = getRepository(Users);
+
+  const users = await userRepository.find();
+
+  return users;
+}
+
+export async function findQuotes() {
+  const quoteRepository = getRepository(Quote);
+
+  const quotes = await quoteRepository.find();
+
+  return quotes;
+}
+
 export async function getUser(user_id: number) {
-  const userRepository = getRepository(User);
+  const userRepository = getRepository(Users);
 
   const user = await userRepository.findOne({ where: { id: user_id } });
 
   return user;
 }
 
-export async function saveQuote(user: User, amount: number) {
+export async function saveQuote(user_id: number, amount: number) {
   const quoteRepository = getRepository(Quote);
   const quote = new Quote();
-  quote.user = user;
+  quote.user_id = user_id;
   quote.amount = amount;
 
   return await quoteRepository.save(quote);
 }
 
 export async function saveQuotes(
-  user: User,
+  user_id: number,
   quotesData: { amount: number }[]
 ): Promise<Quote[]> {
   const quoteRepository = getRepository(Quote);
@@ -61,7 +77,7 @@ export async function saveQuotes(
   // Create an array of Quote entities
   const quotes = quotesData.map((quoteData) => {
     const quote = new Quote();
-    quote.user = user;
+    quote.user_id = user_id;
     quote.amount = quoteData.amount;
     return quote;
   });
@@ -70,12 +86,22 @@ export async function saveQuotes(
   return await quoteRepository.save(quotes);
 }
 
-export async function getBestQuotes(user: User) {
-  const userRepository = (await createConnection()).getRepository(User);
-  const bestThreeQuotes = await userRepository.find({
-    order: { quote: "ASC" },
-    take: 3,
-  });
+export async function getBestQuotes(user_id: number) {
+  const quoteRepository = getRepository(Quote);
+
+  // Assuming there is a 'quotes' field in the User entity representing the one-to-many relationship
+  const quotes = await quoteRepository.find({ where: { user_id: user_id } });
+
+  if (!quotes || quotes.length === 0) {
+    // Handle the case where the user has no quotes
+    return [];
+  }
+
+  // Sort quotes by amount in ascending order
+  quotes.sort((a, b) => a.amount - b.amount);
+
+  // Get the best three quotes
+  const bestThreeQuotes = quotes.slice(0, 3);
 
   return bestThreeQuotes;
 }

@@ -12,7 +12,7 @@ import * as constants from '../utils/constants'
 
 export async function generateQuotes(req: Request, res: Response) {
   try {
-    const generateQuotes = service.generateQuotes(req.body.name, parseInt(req.body.age), req.body.carModel, parseInt(req.body.yearsOfExperience));
+    const generateQuotes = await service.generateQuotes(req.body.name, parseInt(req.body.age), req.body.carModel, parseInt(req.body.yearsOfExperience));
     
     const success_response: AppSuccess = { status: constants.SUCCESS_MSG, code: constants.SUCCESS_CODE, data: generateQuotes }
 
@@ -24,9 +24,9 @@ export async function generateQuotes(req: Request, res: Response) {
 
 export async function getBestQuotes(req: Request, res: Response) {
   try {
-    const user_id = req.params.user_id;
+    const user_id = req.query.user_id as string;
 
-    const bestQuotes = service.getBestQuotes(parseInt(user_id))
+    const bestQuotes = await service.getBestQuotes(parseInt(user_id));
     
     const success_response: AppSuccess = { status: constants.SUCCESS_MSG, code: constants.SUCCESS_CODE, data: bestQuotes }
     return res.status(constants.SUCCESS_CODE).json(success_response)
