@@ -1,0 +1,26 @@
+# Node.js
+node_modules/
+
+# Package Lock files
+.package-lock.json
+
+# TypeScript
+dist/
+*.tsbuildinfo
+
+# PostgreSQL
+# *.sql
+
+# IDE
+.vscode/
+
+# macOS
+.DS_Store
+
+# dotenv environment variables file
+.env
+.env.local
+.env.*.local
+
+# Jest
+coverage/
