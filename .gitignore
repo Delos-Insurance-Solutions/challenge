@@ -2,7 +2,7 @@
 node_modules/
 
 # Package Lock files
-.package-lock.json
+package-lock.json
 
 # TypeScript
 dist/
