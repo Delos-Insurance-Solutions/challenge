@@ -36,6 +36,9 @@ Create a backend application using NestJS and TypeScript that processes addresse
 
 - Use NestJS as the framework
 - Use TypeScript for all code
+- Use sequelize-typescript as ORM
+- Use postgres database
+- Create a docker-compose file to run the application
 - Implement proper error handling and input validation
 - Use environment variables for API keys and sensitive information
 - Include logging for important operations and errors
@@ -91,9 +94,9 @@ Create a backend application using NestJS and TypeScript that processes addresse
 - Add unit and integration tests
 
 ## Submission Instructions
-1. Create a private GitHub repository for your project
+1. Fork this repository to start your application
 2. Implement the assignment according to the requirements
-3. Include a README.md with:
+3. Include in the top of the README.md file:
    - Setup and run instructions
    - API documentation
    - Any assumptions or additional features you implemented
