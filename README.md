@@ -1,58 +1,115 @@
-# challenge
+# Backend Engineer Assignment: Address-based Wildfire Risk API
 
-## Node.js Backend Challenge: Insurance Policy Quote Integration
+## Objective
+Create a backend application using NestJS and TypeScript that processes addresses, retrieves geocoding and wildfire data, and stores this information in a database. The application should provide API endpoints to submit addresses and retrieve stored data.
 
-### Scenario:
-You work for CaliSafe Insurance, a fictitious insurance company in California. Your task is to create a backend service that integrates with an external insurance dispatcher API, fetches quotes based on user input, and returns the best three quotes to the front-end.
+## Core Requirements
 
-### Requirements:
+1. **Address Submission Endpoint**
+   - Implement a POST endpoint `/addresses`
+   - Accept a valid address as input
+   - Use a geocoding service (e.g., Google Maps Geocoding API) to obtain latitude and longitude for the address
+   - Make a request to NASA's FIRMS API to check for wildfire data in the vicinity
+   - Save all retrieved data in the database
 
-#### Setup:
-Initialize a new Node.js project using TypeScript.
-Set up a PostgreSQL database using your preferred ORM (e.g., TypeORM, Sequelize).
+2. **Address Listing Endpoint**
+   - Implement a GET endpoint `/addresses`
+   - Return a list of all stored addresses with their IDs, latitudes, and longitudes
 
-#### API Endpoints:
-`/api/quotes`: POST request that takes user details (name, age, car model, years of driving experience) and fetches insurance quotes.
-`/api/quotes/best-three`: GET request that retrieves the best three quotes (lowest price) from the previously fetched quotes.
+3. **Address Detail Endpoint**
+   - Implement a GET endpoint `/addresses/:id`
+   - Return full details for a specific address, including:
+     - Original address
+     - Latitude and longitude
+     - Wildfire data
+     - Any other relevant information retrieved
 
-#### Integration:
-Integrate with a mocked insurance dispatcher API. Use tools like json-server or MirageJS to mock the external API.
+4. **Database Integration**
+   - Use PostgreSQL as the database
+   - Use TypeORM for object-relational mapping
 
-#### Database:
-Store all fetched quotes in the PostgreSQL database with relevant user details.
+5. **API Integration**
+   - Integrate with a geocoding API (e.g., Google Maps Geocoding API)
+   - Integrate with NASA's FIRMS API for wildfire data
 
-#### Error Handling:
-Properly handle potential errors like invalid user input, API failures, etc.
+## Technical Requirements
 
-#### Documentation:
-Provide a brief README detailing how to set up and run the project.
+- Use NestJS as the framework
+- Use TypeScript for all code
+- Implement proper error handling and input validation
+- Use environment variables for API keys and sensitive information
+- Include logging for important operations and errors
 
-#### Bonus (not required, but good to have):
-- Implement caching to speed up repeated requests.
-- Include unit and integration tests.
-- Implement a rate-limiting mechanism to avoid overloading the mocked dispatcher API.
-- Containerize the application using Docker.
-- Use an AWS service, like AWS Lambda, to showcase a serverless deployment.
+## Detailed Specifications
 
-#### Evaluation Points (Total: 100 points):
+### 1. POST /addresses
+- **Input**: JSON object with an `address` field (string)
+- **Process**:
+  1. Validate the input address
+  2. Use geocoding API to get latitude and longitude
+  3. Use NASA FIRMS API to get wildfire data for the location
+  4. Save all data to the database
+- **Output**: JSON object with the saved data, including a generated ID
 
-- Project Setup (20 points)
-- Proper TypeScript setup: 10 points.
-- PostgreSQL and ORM setup: 10 points.
-- API Endpoints (25 points)
-- Correct implementation of /api/quotes: 15 points.
-- Correct implementation of /api/quotes/best-three: 10 points.
-- Integration & Database (25 points)
-- Successful integration with the mocked API: 10 points.
-- Proper data storage and retrieval with PostgreSQL: 15 points.
-- Error Handling (10 points)
-- Comprehensive error handling: 10 points.
-- Documentation (10 points)
-- Clear and concise README: 10 points.
+### 2. GET /addresses
+- **Input**: None (optional query parameters for pagination)
+- **Output**: JSON array of objects, each containing:
+  - `id`: Database ID of the address entry
+  - `address`: Original address string
+  - `latitude`: Latitude from geocoding
+  - `longitude`: Longitude from geocoding
 
-#### Bonus Points (up to 10 points each)
-- Caching: 5 points.
-- Testing: 5 points.
-- Rate limiting: 5 points.
-- Docker: 5 points.
-- Serverless deployment with AWS: 10 points.
+### 3. GET /addresses/:id
+- **Input**: Address ID in the URL parameter
+- **Output**: JSON object with full details:
+  - `id`: Database ID of the address entry
+  - `address`: Original address string
+  - `latitude`: Latitude from geocoding
+  - `longitude`: Longitude from geocoding
+  - `wildfireData`: Object or array containing wildfire information from NASA FIRMS
+  - Any other relevant data you choose to include
+
+## API Integration Guidelines
+
+1. **Geocoding API**
+   - Suggested: Google Maps Geocoding API
+   - Endpoint: `https://maps.googleapis.com/maps/api/geocode/json`
+   - Key Parameters: `address`, `key` (API key)
+   - Parse the response to extract latitude and longitude
+
+2. **NASA FIRMS API**
+   - Endpoint: `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${NASA_API_KEY}/VIIRS_SNPP_NRT/`
+   - Key Parameters: 
+     - `area`: Use a bounding box around the address coordinates
+     - `date`: Recent date range (e.g., last 7 days)
+   - Parse the CSV response to extract relevant wildfire data
+
+## Bonus Features
+- Implement caching for geocoding and wildfire data to reduce API calls
+- Add pagination to the GET /addresses endpoint
+- Implement a background job to periodically update wildfire data for stored addresses
+- Add unit and integration tests
+
+## Submission Instructions
+1. Create a private GitHub repository for your project
+2. Implement the assignment according to the requirements
+3. Include a README.md with:
+   - Setup and run instructions
+   - API documentation
+   - Any assumptions or additional features you implemented
+4. Ensure your code is well-commented and follows best practices
+5. Share the repository with our GitHub account: [Your Company's GitHub Account]
+
+## Evaluation Criteria
+- Correct implementation of all required endpoints
+- Proper integration with external APIs
+- Effective use of NestJS features and TypeScript
+- Database design and ORM usage
+- Error handling and input validation
+- Code organization and clarity
+- API documentation quality
+
+## Time Limit
+Please complete this assignment within 7 days of receiving it. If you need more time, please let us know.
+
+Good luck! We look forward to reviewing your implementation.
