@@ -26,7 +26,7 @@ Create a backend application using NestJS and TypeScript that processes addresse
 
 4. **Database Integration**
    - Use PostgreSQL as the database
-   - Use TypeORM for object-relational mapping
+   - Use Sequelize for object-relational mapping
 
 5. **API Integration**
    - Integrate with a geocoding API (e.g., Google Maps Geocoding API)
