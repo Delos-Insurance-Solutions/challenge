@@ -20,20 +20,45 @@ export class FirmsService {
         return `${west},${south},${east},${north}`;
     }
 
+    /**
+     * FetchCsv from FIRMS API.
+     *
+     * @param mapKey - The FIRMS map key
+     * @param source - The FIRMS data source
+     * @param bbox - The bounding box (west,south,east,north)
+     * @param dayRange - The range of days to fetch
+     * @returns CSV text
+     * @example Saves it as a string to not add weird Date/Map objects to JSONB./
+     * const address = await controller.create({ address: "1600 Amphitheatre Parkway, Mountain View, CA" });
+     */
     private async fetchCsv(mapKey: string, source: string, bbox: string, dayRange: number) {
         const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/${source}/${bbox}/${dayRange}`;
         const res = await firstValueFrom(this.http.get(url, { responseType: 'text' }));
         return String(res.data ?? '');
     }
 
+    /**
+     * Parse CSV text into an array of objects.
+     *
+     * @param csvText - The CSV text to parse
+     * @returns return CSV with headers (acq_date, acq_time, latitude, longitude, confidence, etc.)
+     * @example Saves it as a string to not add weird Date/Map objects to JSONB./
+     * const address = await controller.create({ address: "1600 Amphitheatre Parkway, Mountain View, CA" });
+     */
     private parseCsv(csvText: string): FirmsRecordJson[] {
-        // FIRMS regresa CSV con headers (acq_date, acq_time, latitude, longitude, confidence, etc.)
-        // Lo guardamos como strings para no meter Date/Map raros en JSONB.
         if (!csvText.trim()) return [];
         const records = parse(csvText, { columns: true, skip_empty_lines: true });
         return records as FirmsRecordJson[];
     }
 
+    /**
+     * Fetch wildfire data from FIRMS API.
+     * @param lat - Latitude
+     * @param lng - Longitude
+     * @returns Wildfire data
+     * @example Saves it as a string to not add weird Date/Map objects to JSONB./
+     * const address = await controller.create({ address: "1600 Amphitheatre Parkway, Mountain View, CA" });
+     */
     async fetchWildfires(lat: number, lng: number) {
         const mapKey = process.env.FIRMS_MAP_KEY;
         if (!mapKey) throw new Error('FIRMS_MAP_KEY missing');
@@ -45,7 +70,6 @@ export class FirmsService {
         const rangeDays = 7;
 
         try {
-            // Area API dayRange max 5 :contentReference[oaicite:5]{index=5} → hacemos 5 + 2
             const csv5 = await this.fetchCsv(mapKey, source, bbox, 5);
             const csv2 = await this.fetchCsv(mapKey, source, bbox, 2);
 
