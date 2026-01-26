@@ -82,6 +82,8 @@ export class AddressesService {
             offset,
         });
 
+        this.logger.log(`Found a total of ${count} Addresses with limit=${limit} offset=${offset}`);
+        
         return {
             total: count,
             limit,
@@ -98,6 +100,7 @@ export class AddressesService {
     async findById(id: string) {
         const address = await this.addressModel.findByPk(id);
         if (!address) {
+            this.logger.log(`Address not found id=${id}`);
             throw new NotFoundException('Address not found');
         }
         return address;
