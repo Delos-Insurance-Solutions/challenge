@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Address } from './address.model';
 import { normalizeAddress } from './address-normalize';
 import { GoogleGeocodingService } from '../integrations/google/geocoding.service';
+import {FirmsService} from "../integrations/firms/firms.service";
 //Addresses Service
 @Injectable()
 export class AddressesService {
@@ -10,7 +11,8 @@ export class AddressesService {
 
     constructor(
         @InjectModel(Address) private readonly addressModel: typeof Address,
-        private readonly googleGeocodingService: GoogleGeocodingService
+        private readonly googleGeocodingService: GoogleGeocodingService,
+        private readonly firmsService: FirmsService
     ) {}
 
     /**
@@ -37,8 +39,7 @@ export class AddressesService {
 
         const location = geocode.results[0].geometry.location;
 
-
-        const created = await this.addressModel.create({
+        const address = await this.addressModel.create({
             address: addressText,
             addressNormalized,
             latitude: location.lat,
@@ -52,8 +53,18 @@ export class AddressesService {
             },
         } as any);
 
-        this.logger.log(`Created address id=${created.id}`);
-        return created;
+        const wildfire = await this.firmsService.fetchWildfires(
+            address.latitude!,
+            address.longitude!,
+        );
+        
+        //update wildfire data
+        address.wildfireData = wildfire as any;
+        address.wildfireFetchedAt = new Date();
+        await address.save();
+        
+        this.logger.log(`Created address id=${address.id}`);
+        return address;
     }
 
     async findAll() {
