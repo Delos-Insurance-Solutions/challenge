@@ -1,142 +1,302 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Delos API (NestJS)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend API for address geocoding + wildfire lookup (NASA FIRMS).  
+Addresses are normalized and cached in PostgreSQL to avoid repeated external calls.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
+- `POST /addresses` creates an address (DB-first cache by `addressNormalized`)
+- Google Geocoding integration (lat/lng + raw response stored)
+- NASA FIRMS wildfire lookup (CSV parsed and stored on the address record)
+- PostgreSQL + Sequelize (`sequelize-typescript`)
+- Validation + consistent error responses
+- Migrations and test scripts included
 
-## Description
+## Prerequisites
+- Node.js 18+
+- npm
+- Docker (recommended for local Postgres)
+- Google Geocoding API key
+- NASA FIRMS MAP_KEY
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Setup
 
-## Project setup
+### 1) Install deps
+```bash
+npm install
+```
+### 2) Environment Variables
+
+Create a `.env` file (or copy from `.env.example`).
+
+- `DATABASE_URL` (recommended)
+
+  Example: `postgres://postgres:postgres@localhost:5432/delos`
+- `GOOGLE_MAPS_API_KEY` 
+- `FIRMS_MAP_KEY`
+
+Optional (defaults shown):
+- `PORT`=3000
+- `FIRMS_SOURCE`=VIIRS_SNPP_NRT
+- `FIRMS_BBOX_DELTA`=0.1
+
+> Note: If DATABASE_URL is provided, individual DB vars are not required.
+
+
+### 3) Start Postgres (Docker)
+If you have `docker-compose.yml`:
 
 ```bash
-$ npm install
+$ docker compose up -d
 ```
 
-## Install backend dependencies (DB + config + validation)
+(Alternative) Run a standalone container:
 
 ```bash
-# development
-$ npm i @nestjs/config sequelize sequelize-typescript pg pg-hstore class-validator class-transformer
+$ docker run -d --name delos-api-db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=delos \
+  -p 5432:5432 postgres:15
 
 ```
 
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-# Database
-
-## Connect to the database
-
-The database is running on a docker container. To connect you must run the following command:
-
-```bash
-$ docker exec -it delos-api-db-1 psql -U postgres -c "\l"
-```
-
-To list the tables in the database
-
-```bash
-$ docker exec -it delos-api-db-1 psql -U postgres -d delos -c "\dt"
-```
-
-## Add a new migration
-When running the project for the first time, run the following command:
-```bash
-npx sequelize-cli migration:generate --name <NAME-OF-THE-MIGRATION>
-```
-The migration will be created in the migrations folder. `src/database/migrations` 
-
-## To correct a migration 
-
-Run the following command:
+### 4) Run Migrations
+Generate a migration (when adding schema changes) or run existing migrations:
 
 ```bash
 ./node_modules/.bin/sequelize-cli db:migrate --config sequelize.config.js
 ```
-Then run this command again:
 
+## API
 
+### POST/addresses
+
+#### Body
 ```bash
-docker exec -it delos-api-db-1 psql -U postgres -d delos -c "\dt"
+{ "address": "1600 Amphitheatre Parkway, Mountain View, CA" }
 ```
 
-## Run tests
+#### Responses
+- `200 OK` returns the address record (includes geocode + wildfire fields)
+- `400 Bad Request` invalid payload (missing/empty address)
+- `422 Unprocessable Entity` address could not be geocoded
+- `502 Bad Gateway` external dependency failure (Google or FIRMS)
+
+
+Response example:
+```json
+{
+  "id": "0ffae53f-f5c6-4e14-8b51-8d5148fb11b3",
+  "address": "3327 20th Street, San Francisco, CA",
+  "addressNormalized": "3327 20th street, san francisco, ca",
+  "latitude": 37.7587473,
+  "longitude": -122.415302,
+  "geocodeRaw": {
+    "status": "OK",
+    "results": [
+      {
+        "types": [
+          "street_address",
+          "subpremise"
+        ],
+        "geometry": {
+          "location": {
+            "lat": 37.7587473,
+            "lng": -122.415302
+          },
+          "viewport": {
+            "northeast": {
+              "lat": 37.7601590302915,
+              "lng": -122.4139766197085
+            },
+            "southwest": {
+              "lat": 37.7574610697085,
+              "lng": -122.4166745802915
+            }
+          },
+          "location_type": "ROOFTOP"
+        },
+        "place_id": "ChIJoeZigTl-j4ARzSzblDV4IvE",
+        "formatted_address": "3327 20th St, San Francisco, CA 94110, USA",
+        "navigation_points": [
+          {
+            "location": {
+              "latitude": 37.75881,
+              "longitude": -122.4153431
+            }
+          }
+        ],
+        "address_components": ["...truncated for brevity..."]
+      }
+    ]
+  },
+  "wildfireData": {
+    "bbox": "",
+    "count": 0,
+    "records": [],
+    "rangeDays": 7
+  },
+  "updatedAt": "2026-01-26T20:22:52.457Z",
+  "createdAt": "2026-01-26T20:22:52.457Z",
+  "wildfireFetchedAt": null
+}
+```
+
+### GET /addresses
+
+Query params:
+- `limit` (default 20, max 100)
+- `offset` (default 0)
+
+Response example:
+```json
+{
+  "total": 1,
+  "limit": 20,
+  "offset": 0,
+  "items": [
+    {
+      "id": "4c814044-ea93-481e-8a93-ee180e58a68a",
+      "address": "1600 Amphitheatre Parkway, Mountain View, CA",
+      "latitude": 0,
+      "longitude": 0
+    }
+  ]
+}
+```
+
+### GET /addresses/:id
+
+Fetch a single address by id.
+
+Responses
+
+- `200 OK` record found
+- `404 Not Found` no record exists
+
+Response example:
+```json
+{
+  "id": "0ffae53f-f5c6-4e14-8b51-8d5148fb11b3",
+  "address": "3327 20th Street, San Francisco, CA",
+  "latitude": 37.7587473,
+  "longitude": -122.415302,
+  "wildfireData": {
+    "bbox": "",
+    "count": 0,
+    "records": [],
+    "rangeDays": 7
+  },
+  "geocodeRaw": {
+    "status": "OK",
+    "results": [
+      {
+        "types": [
+          "street_address",
+          "subpremise"
+        ],
+        "geometry": {
+          "location": {
+            "lat": 37.7587473,
+            "lng": -122.415302
+          },
+          "viewport": {
+            "northeast": {
+              "lat": 37.7601590302915,
+              "lng": -122.4139766197085
+            },
+            "southwest": {
+              "lat": 37.7574610697085,
+              "lng": -122.4166745802915
+            }
+          },
+          "location_type": "ROOFTOP"
+        },
+        "place_id": "ChIJoeZigTl-j4ARzSzblDV4IvE",
+        "formatted_address": "3327 20th St, San Francisco, CA 94110, USA",
+        "navigation_points": [
+          {
+            "location": {
+              "latitude": 37.75881,
+              "longitude": -122.4153431
+            }
+          }
+        ],
+        "address_components": ["...truncated for brevity..."]
+      }
+    ]
+  },
+  "wildfireFetchedAt": null,
+  "createdAt": "2026-01-26T20:22:52.457Z",
+  "updatedAt": "2026-01-26T20:22:52.457Z",
+  "addressNormalized": "3327 20th street, san francisco, ca"
+}
+```
+
+### Caching behavior
+
+- The API normalizes the incoming address and checks the DB first (`addressNormalized` is UNIQUE).
+- Cache hit: returns stored record without calling external services.
+- Cache miss: calls Google Geocoding + FIRMS, persists results, and returns the record.
+
+## Tests
 
 ```bash
-# unit tests
 $ npm run test
-
-# e2e tests
 $ npm run test:e2e
-
-# test coverage
 $ npm run test:cov
 ```
+## Key files
+
+- `src/addresses/addresses.controller.ts` — endpoints + request validation
+- `src/addresses/addresses.service.ts` — business logic + external integrations
+- `src/database/migrations` — Sequelize migrations
+- `sequelize.config.js` — Sequelize CLI config
+
+## API Overview
+
+- `POST /addresses` — create a new address
+  - Body: `{ "address": "1600 Amphitheatre Parkway, Mountain View, CA" }`
+  - Validates the payload and returns `400 Bad Request` for missing/empty address.
+  - On success returns the created address record (including geocode and wildfire data).
+
+- `GET /addresses` — list addresses with pagination
+  - Query params: `limit, offset`
+  - Defaults: `limit=20` (max 100), `offset=0`
+- `GET /addresses/:id` — fetch an address by id
+  - Validates `id` param and returns `400 Bad Request` when missing/invalid.
+  - Returns `404 Not Found` when no record exists for the given id.
+
+## Important Files
+- `src/addresses/addresses.controller.ts` — HTTP endpoints and validation/logging
+- `src/addresses/addresses.service.ts` — main business logic (create, find, fetch external APIs)
+- `src/database/migrations` — Sequelize migrations
+- `sequelize.config.js` — Sequelize CLI configuration
+
+## Logging and Errors
+
+- Controller methods validate inputs and log errors before rethrowing.
+- Service methods perform runtime checks (for example: confirming records were created and have an `id`) and throw `InternalServerErrorException` on unexpected failures.
+- Not found and validation cases use `NotFoundException` and `BadRequestException` accordingly.
+
+## Debugging & Development tips
+
+- Use `npm run start:dev` for automatic restarts.
+- Check logs for detailed context when external API calls fail (Google Geocoding or FIRMS).
+- When throwing exceptions inside a `try` block, ensure you don't immediately catch them locally — perform service call, handle errors, then run existence checks outside the `try` to avoid "throw of exception caught locally" warnings.
 
 ## Deployment
+See NestJS deployment docs: https://docs.nestjs.com/deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+If using Mau (optional):
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install -g @nestjs/mau
+mau deploy
 ```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
 ## License
 

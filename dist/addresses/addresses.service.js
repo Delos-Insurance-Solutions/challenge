@@ -63,6 +63,7 @@ let AddressesService = AddressesService_1 = class AddressesService {
             limit,
             offset,
         });
+        this.logger.log(`Found a total of ${count} Addresses with limit=${limit} offset=${offset}`);
         return {
             total: count,
             limit,
@@ -73,6 +74,7 @@ let AddressesService = AddressesService_1 = class AddressesService {
     async findById(id) {
         const address = await this.addressModel.findByPk(id);
         if (!address) {
+            this.logger.log(`Address not found id=${id}`);
             throw new common_1.NotFoundException('Address not found');
         }
         return address;
