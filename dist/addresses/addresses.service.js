@@ -56,12 +56,19 @@ let AddressesService = AddressesService_1 = class AddressesService {
         this.logger.log(`saved address id=${address.id}`);
         return address;
     }
-    async findAll() {
-        const rows = await this.addressModel.findAll({
+    async findAllPaginated({ limit, offset }) {
+        const { rows, count } = await this.addressModel.findAndCountAll({
             attributes: ['id', 'address', 'latitude', 'longitude'],
             order: [['createdAt', 'DESC']],
+            limit,
+            offset,
         });
-        return rows;
+        return {
+            total: count,
+            limit,
+            offset,
+            items: rows,
+        };
     }
     async findById(id) {
         const address = await this.addressModel.findByPk(id);

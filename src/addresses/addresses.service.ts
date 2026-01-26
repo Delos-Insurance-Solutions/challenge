@@ -1,9 +1,7 @@
 import {
     Injectable,
     NotFoundException,
-    Logger,
-    UnprocessableEntityException,
-    InternalServerErrorException
+    Logger
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Address } from './address.model';
@@ -21,7 +19,7 @@ export class AddressesService {
         private readonly googleGeocodingService: GoogleGeocodingService,
         private readonly firmsService: FirmsService,
 
-) {}
+    ) {}
 
     /**
      * Create a new address in the database.
@@ -64,19 +62,32 @@ export class AddressesService {
         this.logger.log(`saved address id=${address.id}`);
         return address;
     }
-
-
+    
     /**
-     * List all addresses in the database.
-     * @returns All addresses
+     * List all addresses with pagination.
+     * @param limit - Maximum number of items to return
+     * @param offset - Offset of the first item to return
+     * @returns
+     * @example
+     *     "total": 1,
+     *     "limit": 20,
+     *     "offset": 0,
+     *     "items": [...addresses]
      */
-    async findAll() {
-        const rows = await this.addressModel.findAll({
+    async findAllPaginated({ limit, offset }: { limit: number; offset: number }) {
+        const { rows, count } = await this.addressModel.findAndCountAll({
             attributes: ['id', 'address', 'latitude', 'longitude'],
             order: [['createdAt', 'DESC']],
+            limit,
+            offset,
         });
 
-        return rows;
+        return {
+            total: count,
+            limit,
+            offset,
+            items: rows,
+        };
     }
 
     /**
@@ -91,5 +102,4 @@ export class AddressesService {
         }
         return address;
     }
-
 }

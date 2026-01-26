@@ -8,6 +8,14 @@ export declare class AddressesService {
     private readonly logger;
     constructor(addressModel: typeof Address, googleGeocodingService: GoogleGeocodingService, firmsService: FirmsService);
     create(addressText: string): Promise<Address>;
-    findAll(): Promise<Address[]>;
+    findAllPaginated({ limit, offset }: {
+        limit: number;
+        offset: number;
+    }): Promise<{
+        total: number;
+        limit: number;
+        offset: number;
+        items: Address[];
+    }>;
     findById(id: string): Promise<Address>;
 }
