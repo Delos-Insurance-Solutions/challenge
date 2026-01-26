@@ -32,60 +32,39 @@ export class AddressesService {
      * const address = await addressModel.create({ address: "" });
      */
     async create(addressText: string) {
-
         const addressNormalized = normalizeAddress(addressText);
-        this.logger.log(`cache hit for address=${addressNormalized}`);
 
-        const existing = await this.addressModel.findOne({
-            where: { addressNormalized },
-        });
-
+        const existing = await this.addressModel.findOne({ where: { addressNormalized } });
         if (existing) {
+            this.logger.log(`cache hit for address=${addressNormalized} id=${existing.id}`);
             return existing;
         }
+
         this.logger.log(`cache miss, calling Google for address=${addressNormalized}`);
-        const geocode = await this.googleGeocodingService.geocode(addressText);
-
-        if (!geocode.results?.length) {
-            throw new UnprocessableEntityException('Address could not be geocoded');
-        }
-
-        const location = geocode.results[0].geometry.location;
+        const { lat, lng, raw } = await this.googleGeocodingService.geocode(addressText);
 
         const address = await this.addressModel.create({
             address: addressText,
             addressNormalized,
-            latitude: location.lat,
-            longitude: location.lng,
-            geocodeRaw: geocode,
-            wildfireData: {
-                count: 0,
-                records: [],
-                bbox: '',
-                rangeDays: 7,
-            },
+            latitude: lat,
+            longitude: lng,
+            geocodeRaw: raw,
+            wildfireData: { count: 0, records: [], bbox: '', rangeDays: 7 },
         } as any);
 
-        // validate creation
-        if (!address || !address.id) {
-            this.logger.error('Failed to create address', JSON.stringify(address));
-            throw new InternalServerErrorException('Failed to create address');
-        }
-        
         this.logger.log(`calling FIRMS for lat=${address.latitude} lng=${address.longitude}`);
-        const wildfire = await this.firmsService.fetchWildfires(
-            address.latitude!,
-            address.longitude!,
-        );
-        
-        //update wildfire data
+        const wildfire = await this.firmsService.fetchWildfires(address.latitude!, address.longitude!);
+
         address.wildfireData = wildfire as any;
         address.wildfireFetchedAt = new Date();
+        this.logger.log(`final wildfireData.count=${address.wildfireData.count}`);
+
         await address.save();
 
         this.logger.log(`saved address id=${address.id}`);
         return address;
     }
+
 
     /**
      * List all addresses in the database.
@@ -106,8 +85,11 @@ export class AddressesService {
      * @returns The address
      */
     async findById(id: string) {
-        const row = await this.addressModel.findByPk(id);
-        if (!row) throw new NotFoundException(`Address ${id} not found`);
-        return row;
+        const address = await this.addressModel.findByPk(id);
+        if (!address) {
+            throw new NotFoundException('Address not found');
+        }
+        return address;
     }
+
 }

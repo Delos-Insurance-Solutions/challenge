@@ -12,14 +12,22 @@ const addresses_controller_1 = require("./addresses.controller");
 const addresses_service_1 = require("./addresses.service");
 const sequelize_1 = require("@nestjs/sequelize");
 const address_model_1 = require("./address.model");
+const geocoding_service_1 = require("../integrations/google/geocoding.service");
+const firms_module_1 = require("../integrations/firms/firms.module");
 let AddressesModule = class AddressesModule {
 };
 exports.AddressesModule = AddressesModule;
 exports.AddressesModule = AddressesModule = __decorate([
     (0, common_1.Module)({
-        imports: [sequelize_1.SequelizeModule.forFeature([address_model_1.Address])],
+        imports: [
+            sequelize_1.SequelizeModule.forFeature([address_model_1.Address]),
+            firms_module_1.FirmsModule,
+        ],
         controllers: [addresses_controller_1.AddressesController],
-        providers: [addresses_service_1.AddressesService],
+        providers: [
+            addresses_service_1.AddressesService,
+            geocoding_service_1.GoogleGeocodingService
+        ],
     })
 ], AddressesModule);
 //# sourceMappingURL=addresses.module.js.map

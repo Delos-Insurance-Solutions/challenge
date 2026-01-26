@@ -26,6 +26,11 @@ export class AddressesController {
     }
 
     @Get(':id')
+    async findOne(@Param('id') id: string) {
+        return this.addressesService.findById(id);
+    }
+
+    @Get(':id')
     async getById(@Param('id') id: string) {
         return this.addressesService.findById(id);
     }

@@ -5,5 +5,6 @@ export declare class AddressesController {
     constructor(addressesService: AddressesService);
     create(dto: CreateAddressDto): Promise<import("./address.model").Address>;
     list(): Promise<import("./address.model").Address[]>;
+    findOne(id: string): Promise<import("./address.model").Address>;
     getById(id: string): Promise<import("./address.model").Address>;
 }

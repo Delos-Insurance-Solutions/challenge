@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { parse } from 'csv-parse/sync';
 
-export type FirmsRecordJson = Record<string, string>; // guardamos plano (strings) para JSONB
+export type FirmsRecordJson = Record<string, string>;
 
 @Injectable()
 export class FirmsService {
@@ -11,12 +11,20 @@ export class FirmsService {
 
     constructor(private readonly http: HttpService) {}
 
+    /**
+     * Bounding box from latitude and longitude.
+     * 
+     * @param lat
+     * @param lng
+     * @param delta
+     * @private
+     */
     private bboxFromLatLng(lat: number, lng: number, delta: number) {
         const west = lng - delta;
         const south = lat - delta;
         const east = lng + delta;
         const north = lat + delta;
-        // FIRMS espera west,south,east,north :contentReference[oaicite:4]{index=4}
+        // FIRMS waits west,south,east,north :contentReference[officiate:4]{index=4}
         return `${west},${south},${east},${north}`;
     }
 

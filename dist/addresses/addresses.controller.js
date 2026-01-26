@@ -27,6 +27,9 @@ let AddressesController = class AddressesController {
     async list() {
         return this.addressesService.findAll();
     }
+    async findOne(id) {
+        return this.addressesService.findById(id);
+    }
     async getById(id) {
         return this.addressesService.findById(id);
     }
@@ -45,6 +48,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AddressesController.prototype, "list", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AddressesController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
