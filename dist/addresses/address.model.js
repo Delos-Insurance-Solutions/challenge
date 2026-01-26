@@ -20,6 +20,7 @@ let Address = class Address extends sequelize_typescript_1.Model {
     wildfireFetchedAt;
     createdAt = new Date();
     updatedAt = new Date();
+    addressNormalized;
 };
 exports.Address = Address;
 __decorate([
@@ -68,6 +69,11 @@ __decorate([
     sequelize_typescript_1.Column,
     __metadata("design:type", Date)
 ], Address.prototype, "updatedAt", void 0);
+__decorate([
+    (0, sequelize_typescript_1.AllowNull)(false),
+    (0, sequelize_typescript_1.Column)({ type: sequelize_typescript_1.DataType.STRING }),
+    __metadata("design:type", String)
+], Address.prototype, "addressNormalized", void 0);
 exports.Address = Address = __decorate([
     (0, sequelize_typescript_1.Table)({ tableName: 'addresses', timestamps: true })
 ], Address);

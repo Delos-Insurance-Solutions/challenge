@@ -17,6 +17,7 @@ exports.AddressesService = void 0;
 const common_1 = require("@nestjs/common");
 const sequelize_1 = require("@nestjs/sequelize");
 const address_model_1 = require("./address.model");
+const address_normalize_1 = require("./address-normalize");
 let AddressesService = AddressesService_1 = class AddressesService {
     addressModel;
     logger = new common_1.Logger(AddressesService_1.name);
@@ -24,11 +25,24 @@ let AddressesService = AddressesService_1 = class AddressesService {
         this.addressModel = addressModel;
     }
     async create(addressText) {
+        const addressNormalized = (0, address_normalize_1.normalizeAddress)(addressText);
+        const existing = await this.addressModel.findOne({
+            where: { addressNormalized },
+        });
+        if (existing) {
+            return existing;
+        }
         const created = await this.addressModel.create({
             address: addressText,
+            addressNormalized,
             latitude: 0,
             longitude: 0,
-            wildfireData: { count: 0, records: [], bbox: '', rangeDays: 7 }
+            wildfireData: {
+                count: 0,
+                records: [],
+                bbox: '',
+                rangeDays: 7,
+            },
         });
         this.logger.log(`Created address id=${created.id}`);
         return created;

@@ -32,6 +32,36 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Database
+
+To run the database you need to have docker installed.
+Run the image and make sure that the port 5432 is open.
+
+Use the following command before running the API: 
+
+```bash
+# lists containers
+$ docker compose ps
+
+# run container
+$ docker compose up -d
+```
+
+### Run a query
+
+To run a query in the terminal run this command an the  postgres editor will open so you can run a SQL query.
+
+```bash
+# lists containers
+docker exec -it delos-challenge-db-1 psql -U postgres -d delos
+```
+
+Then you can run a query:
+
+```sqlpostgres=#
+SELECT * FROM addresses;
+```
+
 ## Run tests
 
 ```bash

@@ -47,4 +47,9 @@ type FirmsRecordJson = {
     @UpdatedAt
     @Column
     updatedAt: Date = new Date();
-  }
+
+    @AllowNull(false)
+    @Column({ type: DataType.STRING })
+    addressNormalized!: string;
+
+}

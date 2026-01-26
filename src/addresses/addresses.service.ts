@@ -1,20 +1,46 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Address } from './address.model';
+import { normalizeAddress } from './address-normalize';
 
+//Addresses Service
 @Injectable()
 export class AddressesService {
     private readonly logger = new Logger(AddressesService.name);
 
     constructor(@InjectModel(Address) private readonly addressModel: typeof Address) {}
 
+    /**
+     * Create a new address in the database.
+     *
+     * @param addressText - The address string
+     * @returns The created address
+     * @example
+     * const address = await addressModel.create({ address: "" });
+     */
     async create(addressText: string) {
         // TEMP: placeholder until Google + FIRMS
+        const addressNormalized = normalizeAddress(addressText);
+
+        const existing = await this.addressModel.findOne({
+            where: { addressNormalized },
+        });
+
+        if (existing) {
+            return existing;
+        }
+
         const created = await this.addressModel.create({
             address: addressText,
+            addressNormalized,
             latitude: 0,
             longitude: 0,
-            wildfireData: { count: 0, records: [], bbox: '', rangeDays: 7 }
+            wildfireData: {
+                count: 0,
+                records: [],
+                bbox: '',
+                rangeDays: 7,
+            },
         } as any);
 
         this.logger.log(`Created address id=${created.id}`);

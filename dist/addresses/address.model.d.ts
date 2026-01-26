@@ -21,5 +21,6 @@ export declare class Address extends Model<Address> {
     wildfireFetchedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
+    addressNormalized: string;
 }
 export {};
