@@ -3,7 +3,7 @@ export declare class AddressesService {
     private readonly addressModel;
     private readonly logger;
     constructor(addressModel: typeof Address);
-    create(addressText: string): Promise<any>;
-    findAll(): Promise<any>;
-    findById(id: string): Promise<any>;
+    create(addressText: string): Promise<Address>;
+    findAll(): Promise<Address[]>;
+    findById(id: string): Promise<Address>;
 }
