@@ -2,13 +2,16 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Address } from './address.model';
 import { normalizeAddress } from './address-normalize';
-
+import { GoogleGeocodingService } from '../integrations/google/geocoding.service';
 //Addresses Service
 @Injectable()
 export class AddressesService {
     private readonly logger = new Logger(AddressesService.name);
 
-    constructor(@InjectModel(Address) private readonly addressModel: typeof Address) {}
+    constructor(
+        @InjectModel(Address) private readonly addressModel: typeof Address,
+        private readonly googleGeocodingService: GoogleGeocodingService
+    ) {}
 
     /**
      * Create a new address in the database.
@@ -29,12 +32,18 @@ export class AddressesService {
         if (existing) {
             return existing;
         }
+        
+        const geocode = await this.googleGeocodingService.geocode(addressText);
+
+        const location = geocode.results[0].geometry.location;
+
 
         const created = await this.addressModel.create({
             address: addressText,
             addressNormalized,
-            latitude: 0,
-            longitude: 0,
+            latitude: location.lat,
+            longitude: location.lng,
+            geocodeRaw: geocode,
             wildfireData: {
                 count: 0,
                 records: [],
