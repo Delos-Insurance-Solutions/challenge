@@ -170,7 +170,15 @@ let AddressesService = AddressesService_1 = class AddressesService {
         };
     }
     async findById(id) {
-        const address = await this.addressModel.findByPk(id);
+        const address = await this.addressModel.findByPk(id, {
+            attributes: [
+                'id',
+                'address',
+                'latitude',
+                'longitude',
+                'wildfireData',
+            ],
+        });
         if (!address) {
             this.logger.log(`Address not found id=${id}`);
             throw new common_1.NotFoundException('Address not found');

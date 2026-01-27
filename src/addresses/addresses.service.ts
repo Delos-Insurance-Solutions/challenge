@@ -333,13 +333,24 @@ export class AddressesService {
    * const address = await controller.findById('123');
    */
   async findById(id: string) {
-    const address = await this.addressModel.findByPk(id);
+    const address = await this.addressModel.findByPk(id, {
+      attributes: [
+        'id',
+        'address',
+        'latitude',
+        'longitude',
+        'wildfireData',
+      ],
+    });
+
     if (!address) {
       this.logger.log(`Address not found id=${id}`);
       throw new NotFoundException('Address not found');
     }
+
     return address;
   }
+
 
   async refreshWildfiresForStaleAddresses(opts: { staleBefore: Date; limit: number }) {
     const { staleBefore, limit } = opts;

@@ -160,22 +160,7 @@ Response example:
     "count": 0,
     "records": [],
     "rangeDays": 7
-  },
-  "geocodeRaw": {
-    "status": "OK",
-    "results": [
-      {
-        "types": [
-          "... truncated for brevity ..."
-        ],
-        "address_components": ["...truncated for brevity..."]
-      }
-    ]
-  },
-  "wildfireFetchedAt": null,
-  "createdAt": "2026-01-26T20:22:52.457Z",
-  "updatedAt": "2026-01-26T20:22:52.457Z",
-  "addressNormalized": "3327 20th street, san francisco, ca"
+  }
 }
 ```
 
