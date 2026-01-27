@@ -31,14 +31,16 @@ let AddressesService = AddressesService_1 = class AddressesService {
         this.firmsService = firmsService;
     }
     async create(addressText) {
-        const addressNormalized = (0, address_normalize_1.normalizeAddress)(addressText);
+        const addressNormalized = this.validateAndNormalize(addressText);
         const existing = await this.addressModel.findOne({ where: { addressNormalized } });
         if (existing) {
             this.logger.log(`cache hit for address=${addressNormalized} id=${existing.id}`);
             return existing;
         }
         this.logger.log(`cache miss, calling Google for address=${addressNormalized}`);
-        const { lat, lng, raw } = await this.googleGeocodingService.geocode(addressText);
+        const geocode = await this.fetchGeocode(addressText, addressNormalized);
+        const { lat, lng, raw } = this.parseGeocode(geocode, addressNormalized);
+        this.validateCoordinates(lat, lng, addressNormalized);
         const address = await this.addressModel.create({
             address: addressText,
             addressNormalized,
@@ -47,14 +49,64 @@ let AddressesService = AddressesService_1 = class AddressesService {
             geocodeRaw: raw,
             wildfireData: { count: 0, records: [], bbox: '', rangeDays: 7 },
         });
+        if (!address || !address.id) {
+            this.logger.error('Failed to create address', JSON.stringify(address));
+            throw new common_1.InternalServerErrorException('Failed to create address');
+        }
+        await this.fetchAndAttachWildfire(address);
+        this.logger.log(`saved address id=${address.id}`);
+        return address;
+    }
+    validateAndNormalize(addressText) {
+        if (!addressText || !addressText.trim()) {
+            this.logger.error(`Invalid address input: ${JSON.stringify(addressText)}`);
+            throw new common_1.BadRequestException('Address is required');
+        }
+        const addressNormalized = (0, address_normalize_1.normalizeAddress)(addressText);
+        if (!addressNormalized || !addressNormalized.trim()) {
+            this.logger.error(`Address normalized to empty for input: ${addressText}`);
+            throw new common_1.BadRequestException('Address could not be normalized');
+        }
+        return addressNormalized;
+    }
+    async fetchGeocode(addressText, addressNormalized) {
+        try {
+            return await this.googleGeocodingService.geocode(addressText);
+        }
+        catch (err) {
+            this.logger.error(`Google geocoding failed for address=${addressNormalized}`, (err && err.stack) || (err && err.message) || String(err));
+            throw new common_1.InternalServerErrorException('Failed to geocode address');
+        }
+    }
+    parseGeocode(geocode, addressNormalized) {
+        const lat = geocode?.lat ?? geocode?.results?.[0]?.geometry?.location?.lat;
+        const lng = geocode?.lng ?? geocode?.results?.[0]?.geometry?.location?.lng;
+        const raw = geocode?.raw ?? geocode;
+        const hasResultsArray = Array.isArray(geocode?.results) && geocode.results.length > 0;
+        const hasDirectCoords = lat !== undefined && lng !== undefined;
+        if (!geocode || (!hasResultsArray && !hasDirectCoords)) {
+            this.logger.warn(`Geocoding returned no usable results for address=${addressNormalized}`);
+            throw new common_1.UnprocessableEntityException('Address could not be geocoded');
+        }
+        return { lat, lng, raw };
+    }
+    validateCoordinates(lat, lng, addressNormalized) {
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            this.logger.error(`Invalid coordinates from geocoding for address=${addressNormalized} lat=${lat} lng=${lng}`);
+            throw new common_1.UnprocessableEntityException('Geocoding returned invalid coordinates');
+        }
+        if (lat === 0 && lng === 0) {
+            this.logger.warn(`Geocoding returned 0,0 for address=${addressNormalized}`);
+            throw new common_1.UnprocessableEntityException('Geocoding returned invalid coordinates');
+        }
+    }
+    async fetchAndAttachWildfire(address) {
         this.logger.log(`calling FIRMS for lat=${address.latitude} lng=${address.longitude}`);
         const wildfire = await this.firmsService.fetchWildfires(address.latitude, address.longitude);
         address.wildfireData = wildfire;
         address.wildfireFetchedAt = new Date();
         this.logger.log(`final wildfireData.count=${address.wildfireData.count}`);
         await address.save();
-        this.logger.log(`saved address id=${address.id}`);
-        return address;
     }
     async findAllPaginated({ limit, offset }) {
         const { rows, count } = await this.addressModel.findAndCountAll({

@@ -8,6 +8,11 @@ export declare class AddressesService {
     private readonly logger;
     constructor(addressModel: typeof Address, googleGeocodingService: GoogleGeocodingService, firmsService: FirmsService);
     create(addressText: string): Promise<Address>;
+    private validateAndNormalize;
+    private fetchGeocode;
+    private parseGeocode;
+    private validateCoordinates;
+    private fetchAndAttachWildfire;
     findAllPaginated({ limit, offset }: {
         limit: number;
         offset: number;
