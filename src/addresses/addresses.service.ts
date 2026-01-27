@@ -39,6 +39,26 @@ class AddressesService {
     private readonly firmsService: FirmsService,
   ) {}
 
+  /**
+   * Create a new address.
+   * 
+   * This method will first check the cache for an existing address with the same normalized text.
+   * If found, it will return the existing address. Otherwise, it will call Google Geocoding API to geocode the address.
+   * If the geocoding succeeds, it will validate the coordinates and create a new address record.
+   * If the geocoding fails, it will throw an exception.
+   * 
+   * Then it will call FIRMS API to fetch wildfire data for the address.
+   * If the call succeeds, it will attach the wildfire data to the address record.
+   * If the call fails, it will log a warning and continue.
+   * 
+   * The cache is implemented as a simple in-memory map.
+   * 
+   * After creating the address, it will return the newly created address record.
+   * @see https://github.com/googlemaps/google-maps-services-js/blob/master/samples/geocoding.md
+   * @see https://developers.google.com/maps/documentation/geocoding/overview
+   * @see https://firms.modaps.eosdis.nasa.gov/api/
+   * @param addressText
+   */
   async create(addressText: string) {
     const addressNormalized = this.validateAndNormalize(addressText);
 
@@ -88,6 +108,13 @@ class AddressesService {
     return address;
   }
 
+  /**
+   * Validate and normalize an address.
+   * @param addressText - The address text to validate and normalize
+   * @returns The normalized address text
+   * @throws BadRequestException if the address is invalid or could not be normalized
+   * @private
+   */
   private validateAndNormalize(addressText: string): string {
     if (!addressText || !addressText.trim()) {
       this.logger.error(
@@ -107,6 +134,14 @@ class AddressesService {
     return addressNormalized;
   }
 
+  /**
+   * Fetch geocoding results from Google Geocoding API.
+   * @param addressText - The address text to geocode
+   * @param addressNormalized - The normalized address text
+   * @returns The geocoding results
+   * @throws InternalServerErrorException if the geocoding fails
+   * @private
+   */ 
   private async fetchGeocode(
     addressText: string,
     addressNormalized: string,
@@ -125,6 +160,14 @@ class AddressesService {
     }
   }
 
+  /**
+   * Parse geocoding results and extract coordinates.
+   * @param geocode - The geocoding results
+   * @param addressNormalized - The normalized address text
+   * @returns The parsed coordinates
+   * @throws UnprocessableEntityException if the geocoding results are invalid
+   * @private
+   */
   private parseGeocode(
     geocode: GeocodeProviderResult,
     addressNormalized: string,
@@ -160,6 +203,14 @@ class AddressesService {
     return { lat, lng, raw };
   }
 
+  /**
+   * Validate coordinates.
+   * @param lat - The latitude coordinate
+   * @param lng - The longitude coordinate
+   * @param addressNormalized - The normalized address text
+   * @throws UnprocessableEntityException if the coordinates are invalid
+   * @private
+   */
   private validateCoordinates(
     lat: number,
     lng: number,
@@ -191,6 +242,13 @@ class AddressesService {
     }
   }
 
+  /**
+   * Fetch wildfire data for an address.
+   * @param address - The address to fetch wildfire data for
+   * @returns The wildfire data
+   * @throws InternalServerErrorException if the call to FIRMS fails
+   * @private
+   */
   private async fetchAndAttachWildfire(address: Address): Promise<void> {
     this.logger.log(
       `calling FIRMS for lat=${address.latitude} lng=${address.longitude}`,
@@ -234,6 +292,17 @@ class AddressesService {
     }
   }
 
+  /**
+   * List all addresses with pagination.
+   * @param limit - Maximum number of items to return
+   * @param offset - Offset of the first item to return
+   * @returns
+   * @example
+   *     "total": 1,
+   *     "limit": 20,
+   *     "offset": 0,
+   *     "items": [...addresses]
+   */
   async findAllPaginated({ limit, offset }: { limit: number; offset: number }) {
     const { rows, count } = await this.addressModel.findAndCountAll({
       attributes: ['id', 'address', 'latitude', 'longitude'],
@@ -254,6 +323,14 @@ class AddressesService {
     };
   }
 
+  /**
+   * Get an address by ID.
+   * @param id - The ID of the address to get
+   * @returns The address record
+   * @throws NotFoundException if the address is not found
+   * @example
+   * const address = await controller.findById('123');
+   */
   async findById(id: string) {
     const address = await this.addressModel.findByPk(id);
     if (!address) {

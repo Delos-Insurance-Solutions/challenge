@@ -10,54 +10,50 @@ import { GeocodingResponse } from './geocoding.model';
 @Injectable()
 export class GoogleGeocodingService {
   private readonly logger = new Logger(GoogleGeocodingService.name);
+  private readonly timeoutMs = 8000;
 
   /**
    * Geocode an address using Google Maps API.
    * @param address
-   * @returns Geocoded location (latitude, longitude), or throws an error
+   * @returns Geocoded location (latitude, longitude) and raw response
    */
-  async geocode(address: string) {
+  async geocode(address: string): Promise<{ lat: number; lng: number; raw: GeocodingResponse }> {
     const key = process.env.GOOGLE_GEOCODING_API_KEY;
     if (!key) throw new Error('GOOGLE_GEOCODING_API_KEY missing');
 
-    let data: GeocodingResponse;
+    const normalized = address?.trim();
+    if (!normalized) {
+      throw new UnprocessableEntityException('Address is required');
+    }
+
+    let res: { status: number; data: GeocodingResponse };
     try {
-      const res = await axios.get<GeocodingResponse>(
-        'https://maps.googleapis.com/maps/api/geocode/json',
-        {
-          params: { address, key },
-          timeout: 8000,
-        },
-      );
-      data = res.data;
+      res = await axios.get<GeocodingResponse>('https://maps.googleapis.com/maps/api/geocode/json', {
+        params: { address: normalized, key },
+        timeout: this.timeoutMs,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        'GoogleGeocodingService - Error geocoding address',
-        msg,
-      );
+      this.logger.error('GoogleGeocodingService - Error calling provider', msg);
       throw new BadGatewayException('Geocoding provider unavailable');
     }
 
-    const first = data.results?.[0];
-    const loc = first?.geometry?.location;
-    if (!loc || loc.lat === undefined || loc.lng === undefined) {
-      this.logger.error(
-        'GoogleGeocodingService - Address could not be geocoded',
-      );
-      throw new UnprocessableEntityException('Address could not be geocoded');
+    if (res.status !== 200 || !res.data) {
+      this.logger.error(`GoogleGeocodingService - Unexpected response status ${res.status}`);
+      throw new BadGatewayException('Geocoding provider returned an unexpected response');
     }
 
-    const lat = Number(loc.lat);
-    const lng = Number(loc.lng);
+    const first = res.data.results?.[0];
+    const loc = first?.geometry?.location;
+
+    const lat = Number(loc?.lat);
+    const lng = Number(loc?.lng);
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      this.logger.error(
-        'GoogleGeocodingService - Geocoding returned invalid coordinates',
-      );
+      this.logger.warn('GoogleGeocodingService - Address could not be geocoded', { lat: loc?.lat, lng: loc?.lng });
       throw new UnprocessableEntityException('Address could not be geocoded');
     }
 
-    return { lat, lng, raw: data };
+    return { lat, lng, raw: res.data };
   }
 }

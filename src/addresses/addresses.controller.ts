@@ -81,6 +81,14 @@ export class AddressesController {
     });
   }
 
+  /**
+   * Get an address by ID.
+   * @param id - The ID of the address to get
+   * @returns The address record
+   * @throws NotFoundException if the address is not found
+   * @example
+   * const address = await controller.findById('123');
+   */
   @Get(':id')
   async findOne(@Param('id') id: string) {
     if (!id || !id.trim()) {
