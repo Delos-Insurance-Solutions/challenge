@@ -38,9 +38,9 @@ export class GoogleGeocodingService {
       throw new BadGatewayException('Geocoding provider unavailable');
     }
 
-    if (res.status !== 200 || !res.data) {
+    if (!res.data.results?.length || !res.data.results?.[0]?.geometry?.location ) {
       this.logger.error(`GoogleGeocodingService - Unexpected response status ${res.status}`);
-      throw new BadGatewayException('Geocoding provider returned an unexpected response');
+      throw new UnprocessableEntityException('Geocoding provider returned an unexpected response');
     }
 
     const first = res.data.results?.[0];
