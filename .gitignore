@@ -21,12 +21,14 @@ lerna-debug.log*
 
 # IDEs and editors
 /.idea
+.idea/
 .project
 .classpath
 .c9/
 *.launch
 .settings/
 *.sublime-workspace
+
 
 # IDE - VSCode
 .vscode/*
