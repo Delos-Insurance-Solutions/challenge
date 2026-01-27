@@ -6,12 +6,14 @@ const app_module_1 = require("./app.module");
 const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    app.useGlobalPipes(new common_1.ValidationPipe({
+    app
+        .useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
-    })).useGlobalFilters(new http_exception_filter_1.AllExceptionsFilter());
+    }))
+        .useGlobalFilters(new http_exception_filter_1.AllExceptionsFilter());
     await app.listen(process.env.PORT || 3000);
 }
-bootstrap();
+bootstrap().then(() => { });
 //# sourceMappingURL=main.js.map

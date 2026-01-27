@@ -11,11 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var AddressesController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AddressesController = void 0;
 const common_1 = require("@nestjs/common");
-const addresses_service_1 = require("./addresses.service");
+const addresses_service_1 = __importDefault(require("./addresses.service"));
 const create_address_dto_1 = require("./dto/create-address.dto");
 let AddressesController = AddressesController_1 = class AddressesController {
     addressesService;
@@ -32,7 +35,9 @@ let AddressesController = AddressesController_1 = class AddressesController {
             return await this.addressesService.create(dto.address);
         }
         catch (err) {
-            this.logger.error('Failed to create address', (err && err.stack) || (err && err.message) || String(err));
+            this.logger.error('Failed to create address', (err && err.stack) ||
+                (err && err.message) ||
+                String(err));
             throw err;
         }
     }
@@ -44,7 +49,10 @@ let AddressesController = AddressesController_1 = class AddressesController {
             : 20;
         const skip = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
         this.logger.log(`List addresses limit=${take} offset=${skip}`);
-        return this.addressesService.findAllPaginated({ limit: take, offset: skip });
+        return this.addressesService.findAllPaginated({
+            limit: take,
+            offset: skip,
+        });
     }
     async findOne(id) {
         if (!id || !id.trim()) {
@@ -56,7 +64,9 @@ let AddressesController = AddressesController_1 = class AddressesController {
             address = await this.addressesService.findById(id);
         }
         catch (err) {
-            this.logger.error('Failed to get address', (err && err.stack) || (err && err.message) || String(err));
+            this.logger.error('Failed to get address', (err && err.stack) ||
+                (err && err.message) ||
+                String(err));
             throw err;
         }
         if (!address) {
@@ -91,6 +101,6 @@ __decorate([
 ], AddressesController.prototype, "findOne", null);
 exports.AddressesController = AddressesController = AddressesController_1 = __decorate([
     (0, common_1.Controller)('addresses'),
-    __metadata("design:paramtypes", [addresses_service_1.AddressesService])
+    __metadata("design:paramtypes", [addresses_service_1.default])
 ], AddressesController);
 //# sourceMappingURL=addresses.controller.js.map

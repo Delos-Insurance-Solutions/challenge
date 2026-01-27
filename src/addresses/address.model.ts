@@ -1,4 +1,14 @@
-import { Table, Column, Model, PrimaryKey, Default, DataType, AllowNull, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  Model,
+  PrimaryKey,
+  Default,
+  DataType,
+  AllowNull,
+  CreatedAt,
+  UpdatedAt,
+} from 'sequelize-typescript';
 
 type FirmsRecordJson = {
   area: string;
@@ -8,48 +18,51 @@ type FirmsRecordJson = {
   missing_dates: string[];
 };
 
-
 @Table({ tableName: 'addresses', timestamps: true })
-  export class Address extends Model<Address> {
-    @PrimaryKey
-    @Default(DataType.UUIDV4)
-    @Column({ type: DataType.UUID })
-    declare id: string;
-  
-    @AllowNull(false)
-    @Column({ type: DataType.STRING })
-    address!: string;
-  
-    @AllowNull(true)
-    @Column({ type: DataType.FLOAT })
-    latitude?: number;
-  
-    @AllowNull(true)
-    @Column({ type: DataType.FLOAT })
-    longitude?: number;
-  
-    @Default({})
-    @Column({ type: DataType.JSONB })
-    wildfireData!: { count: number; records: FirmsRecordJson[]; bbox: string; rangeDays: number }
-  
-    @AllowNull(true)
-    @Column({ type: DataType.JSONB })
-    geocodeRaw?: object;
-  
-    @AllowNull(true)
-    @Column({ type: DataType.DATE })
-    wildfireFetchedAt?: Date;
-  
-    @CreatedAt
-    @Column
-    createdAt: Date = new Date();
-  
-    @UpdatedAt
-    @Column
-    updatedAt: Date = new Date();
+export class Address extends Model<Address> {
+  @PrimaryKey
+  @Default(DataType.UUIDV4)
+  @Column({ type: DataType.UUID })
+  declare id: string;
 
-    @AllowNull(false)
-    @Column({ type: DataType.STRING })
-    addressNormalized!: string;
+  @AllowNull(false)
+  @Column({ type: DataType.STRING })
+  address!: string;
 
+  @AllowNull(true)
+  @Column({ type: DataType.FLOAT })
+  latitude?: number;
+
+  @AllowNull(true)
+  @Column({ type: DataType.FLOAT })
+  longitude?: number;
+
+  @Default({})
+  @Column({ type: DataType.JSONB })
+  wildfireData!: {
+    count: number;
+    records: FirmsRecordJson[];
+    bbox: string;
+    rangeDays: number;
+  };
+
+  @AllowNull(true)
+  @Column({ type: DataType.JSONB })
+  geocodeRaw?: object;
+
+  @AllowNull(true)
+  @Column({ type: DataType.DATE })
+  wildfireFetchedAt?: Date;
+
+  @CreatedAt
+  @Column
+  createdAt: Date = new Date();
+
+  @UpdatedAt
+  @Column
+  updatedAt: Date = new Date();
+
+  @AllowNull(false)
+  @Column({ type: DataType.STRING })
+  addressNormalized!: string;
 }

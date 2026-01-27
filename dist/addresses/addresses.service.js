@@ -13,7 +13,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 var AddressesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AddressesService = void 0;
 const common_1 = require("@nestjs/common");
 const sequelize_1 = require("@nestjs/sequelize");
 const address_model_1 = require("./address.model");
@@ -32,7 +31,9 @@ let AddressesService = AddressesService_1 = class AddressesService {
     }
     async create(addressText) {
         const addressNormalized = this.validateAndNormalize(addressText);
-        const existing = await this.addressModel.findOne({ where: { addressNormalized } });
+        const existing = await this.addressModel.findOne({
+            where: { addressNormalized },
+        });
         if (existing) {
             this.logger.log(`cache hit for address=${addressNormalized} id=${existing.id}`);
             return existing;
@@ -41,14 +42,15 @@ let AddressesService = AddressesService_1 = class AddressesService {
         const geocode = await this.fetchGeocode(addressText, addressNormalized);
         const { lat, lng, raw } = this.parseGeocode(geocode, addressNormalized);
         this.validateCoordinates(lat, lng, addressNormalized);
-        const address = await this.addressModel.create({
+        const payload = {
             address: addressText,
             addressNormalized,
             latitude: lat,
             longitude: lng,
             geocodeRaw: raw,
             wildfireData: { count: 0, records: [], bbox: '', rangeDays: 7 },
-        });
+        };
+        const address = await this.addressModel.create(payload);
         if (!address || !address.id) {
             this.logger.error('Failed to create address', JSON.stringify(address));
             throw new common_1.InternalServerErrorException('Failed to create address');
@@ -71,27 +73,44 @@ let AddressesService = AddressesService_1 = class AddressesService {
     }
     async fetchGeocode(addressText, addressNormalized) {
         try {
-            return await this.googleGeocodingService.geocode(addressText);
+            const res = await this.googleGeocodingService.geocode(addressText);
+            return res;
         }
         catch (err) {
-            this.logger.error(`Google geocoding failed for address=${addressNormalized}`, (err && err.stack) || (err && err.message) || String(err));
+            const msg = err instanceof Error ? err.message : String(err);
+            const stack = err instanceof Error ? err.stack : undefined;
+            this.logger.error(`Google geocoding failed for address=${addressNormalized}`, stack ?? msg);
             throw new common_1.InternalServerErrorException('Failed to geocode address');
         }
     }
     parseGeocode(geocode, addressNormalized) {
-        const lat = geocode?.lat ?? geocode?.results?.[0]?.geometry?.location?.lat;
-        const lng = geocode?.lng ?? geocode?.results?.[0]?.geometry?.location?.lng;
-        const raw = geocode?.raw ?? geocode;
-        const hasResultsArray = Array.isArray(geocode?.results) && geocode.results.length > 0;
-        const hasDirectCoords = lat !== undefined && lng !== undefined;
+        const first = Array.isArray(geocode.results)
+            ? geocode.results[0]
+            : undefined;
+        const latRaw = geocode.lat ?? first?.geometry?.location?.lat;
+        const lngRaw = geocode.lng ?? first?.geometry?.location?.lng;
+        const raw = geocode.raw ?? geocode;
+        const hasResultsArray = Array.isArray(geocode.results) && geocode.results.length > 0;
+        const hasDirectCoords = latRaw !== undefined && lngRaw !== undefined;
         if (!geocode || (!hasResultsArray && !hasDirectCoords)) {
             this.logger.warn(`Geocoding returned no usable results for address=${addressNormalized}`);
+            throw new common_1.UnprocessableEntityException('Address could not be geocoded');
+        }
+        const lat = Number(latRaw);
+        const lng = Number(lngRaw);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            this.logger.warn(`Geocoding returned non-finite coords for address=${addressNormalized}`);
             throw new common_1.UnprocessableEntityException('Address could not be geocoded');
         }
         return { lat, lng, raw };
     }
     validateCoordinates(lat, lng, addressNormalized) {
-        if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        if (!Number.isFinite(lat) ||
+            !Number.isFinite(lng) ||
+            lat < -90 ||
+            lat > 90 ||
+            lng < -180 ||
+            lng > 180) {
             this.logger.error(`Invalid coordinates from geocoding for address=${addressNormalized} lat=${lat} lng=${lng}`);
             throw new common_1.UnprocessableEntityException('Geocoding returned invalid coordinates');
         }
@@ -102,11 +121,36 @@ let AddressesService = AddressesService_1 = class AddressesService {
     }
     async fetchAndAttachWildfire(address) {
         this.logger.log(`calling FIRMS for lat=${address.latitude} lng=${address.longitude}`);
-        const wildfire = await this.firmsService.fetchWildfires(address.latitude, address.longitude);
-        address.wildfireData = wildfire;
-        address.wildfireFetchedAt = new Date();
-        this.logger.log(`final wildfireData.count=${address.wildfireData.count}`);
-        await address.save();
+        let wildfire = null;
+        try {
+            const res = await this.firmsService.fetchWildfires(address.latitude ?? 0, address.longitude ?? 0);
+            if (res && typeof res === 'object') {
+                const count = res.count;
+                const records = res.records ?? [];
+                const bbox = res.bbox;
+                const rangeDays = res.rangeDays;
+                wildfire = {
+                    count: typeof count === 'number'
+                        ? count
+                        : Array.isArray(records)
+                            ? records.length
+                            : 0,
+                    records,
+                    bbox,
+                    rangeDays,
+                };
+            }
+        }
+        catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            this.logger.error('FIRMS fetch failed', msg);
+        }
+        if (wildfire) {
+            address.wildfireData = wildfire;
+            address.wildfireFetchedAt = new Date();
+            this.logger.log(`final wildfireData.count=${wildfire.count}`);
+            await address.save();
+        }
     }
     async findAllPaginated({ limit, offset }) {
         const { rows, count } = await this.addressModel.findAndCountAll({
@@ -132,11 +176,11 @@ let AddressesService = AddressesService_1 = class AddressesService {
         return address;
     }
 };
-exports.AddressesService = AddressesService;
-exports.AddressesService = AddressesService = AddressesService_1 = __decorate([
+AddressesService = AddressesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, sequelize_1.InjectModel)(address_model_1.Address)),
     __metadata("design:paramtypes", [Object, geocoding_service_1.GoogleGeocodingService,
         firms_service_1.FirmsService])
 ], AddressesService);
+exports.default = AddressesService;
 //# sourceMappingURL=addresses.service.js.map

@@ -1,12 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import {InternalServerErrorException, UnprocessableEntityException} from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { UnprocessableEntityException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/sequelize';
 
-import { AddressesService } from './addresses.service';
-import { Address } from './address.model'; 
+import AddressesService from './addresses.service';
+import { Address } from './address.model';
 
-import { GoogleGeocodingService } from '../integrations/google/geocoding.service'; 
-import { FirmsService } from '../integrations/firms/firms.service'; 
+import { GoogleGeocodingService } from '../integrations/google/geocoding.service';
+import { FirmsService } from '../integrations/firms/firms.service';
 
 describe('AddressesService', () => {
   let service: AddressesService;
@@ -19,20 +19,12 @@ describe('AddressesService', () => {
     findAndCountAll: jest.fn(),
   };
 
-  const addressResponseMock = ({
-    address: jest.fn(),
-    latitude: jest.fn(),
-    longitude: jest.fn(),
-    geocodeRaw: jest.fn(),
-    wildfireData: { count: 0, records: [], bbox: '', rangeDays: 7 },
-  } as any);
-
   const googleMock = {
     geocode: jest.fn(),
   };
 
   const firmsMock = {
-    fetchWildfires: jest.fn(), 
+    fetchWildfires: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -59,12 +51,11 @@ describe('AddressesService', () => {
       latitude: 37.422,
       longitude: -122.084,
     };
-    const address = '1600 Amphitheatre Parkway, Mountain View, CA'
+    const address = '1600 Amphitheatre Parkway, Mountain View, CA';
     addressModelMock.findOne.mockResolvedValue(cached);
 
     // ACT
-    const result = await service.create(address); 
-
+    const result = await service.create(address);
 
     // ASSERT
     expect(result.address).toBe(address);
@@ -78,12 +69,10 @@ describe('AddressesService', () => {
     googleMock.geocode.mockResolvedValue({ results: [] });
 
     await expect(service.create('some weird address')).rejects.toBeInstanceOf(
-        UnprocessableEntityException,
+      UnprocessableEntityException,
     );
 
     expect(googleMock.geocode).toHaveBeenCalledTimes(1);
     expect(firmsMock.fetchWildfires).not.toHaveBeenCalled();
   });
-
-
 });
