@@ -1,216 +1,265 @@
-# Backend Engineer Assignment: Address-based Wildfire Risk API
+# Delos API (NestJS)
 
-## Objective
-Create a backend application using NestJS and TypeScript that processes addresses, retrieves geocoding and wildfire data, and stores this information in a database. The application should provide API endpoints to submit addresses and retrieve stored data.
+Backend API for address geocoding + wildfire lookup (NASA FIRMS).  
+Addresses are normalized and cached in PostgreSQL to avoid repeated external calls.
 
-## Core Requirements
+## Features
+- `POST /addresses` creates an address (DB-first cache by `addressNormalized`)
+- `GET /addresses` gets addresses (DB-first pagination `limit` and `offset)
+- `GET /addresses/:id` gets an address by id (DB-first address one by `id`)
+- Google Geocoding integration (lat/lng + raw response stored)
+- NASA FIRMS wildfire lookup (CSV parsed and stored on the address record)
+- PostgreSQL + Sequelize (`sequelize-typescript`)
+- Validation + consistent error responses
+- Migrations and test scripts included
 
-1. **Address Submission Endpoint**
-   - Implement a POST endpoint `/addresses`
-   - Accept a valid address as input
-   - Use a geocoding service (e.g., Google Maps Geocoding API) to obtain latitude and longitude for the address
-   - Make a request to NASA's FIRMS API to check for wildfire data in the vicinity
-   - Save all retrieved data in the database
+## Prerequisites
+- Node.js 18+
+- npm
+- Docker (recommended for local Postgres)
+- Google Geocoding API key
+- NASA FIRMS MAP_KEY
 
-2. **Address Listing Endpoint**
-   - Implement a GET endpoint `/addresses`
-   - Return a list of all stored addresses with their IDs, latitudes, and longitudes
+## Setup
 
-3. **Address Detail Endpoint**
-   - Implement a GET endpoint `/addresses/:id`
-   - Return full details for a specific address, including:
-     - Original address
-     - Latitude and longitude
-     - Wildfire data
-     - Any other relevant information retrieved
+### 1) Install deps
+```bash
+npm install
+```
+### 2) Environment Variables
 
-4. **Database Integration**
-   - Use PostgreSQL as the database
-   - Use Sequelize for object-relational mapping
+Create a `.env` file (or copy from `.env.example`).
 
-5. **API Integration**
-   - Integrate with a geocoding API (e.g., Google Maps Geocoding API)
-   - Integrate with NASA's FIRMS API for wildfire data
+- `DATABASE_URL` (recommended)
 
-## Technical Requirements
+  Example: `postgres://postgres:postgres@localhost:5432/delos`
+- `GOOGLE_MAPS_API_KEY` 
+- `FIRMS_MAP_KEY`
 
-- Use NestJS as the framework
-- Use TypeScript for all code
-- Use sequelize-typescript as ORM
-- Use postgres database
-- Create a docker-compose file to run the application
-- Implement proper error handling and input validation
-- Use environment variables for API keys and sensitive information
-- Include logging for important operations and errors
+Optional (defaults shown):
+- `PORT`=3000
+- `FIRMS_SOURCE`=VIIRS_SNPP_NRT
+- `FIRMS_BBOX_DELTA`=0.1
 
-## Detailed Specifications
+> Note: If DATABASE_URL is provided, individual DB vars are not required.
 
-### 1. POST /addresses
-- **Input**: JSON object with an `address` field (string)
-- **Process**:
-  1. Validate the input address
-  2. Use geocoding API to get latitude and longitude
-  3. Use NASA FIRMS API to get wildfire data for the location
-  4. Save all data to the database
-- **Output**: JSON object with the saved data, including a generated ID
 
-### 2. GET /addresses
-- **Input**: None (optional query parameters for pagination)
-- **Output**: JSON array of objects, each containing:
-  - `id`: Database ID of the address entry
-  - `address`: Original address string
-  - `latitude`: Latitude from geocoding
-  - `longitude`: Longitude from geocoding
-
-### 3. GET /addresses/:id
-- **Input**: Address ID in the URL parameter
-- **Output**: JSON object with full details:
-  - `id`: Database ID of the address entry
-  - `address`: Original address string
-  - `latitude`: Latitude from geocoding
-  - `longitude`: Longitude from geocoding
-  - `wildfireData`: Object or array containing wildfire information from NASA FIRMS
-  - Any other relevant data you choose to include
-
-## API Integration Guidelines
-
-1. **Geocoding API**
-   - Suggested: Google Maps Geocoding API
-   - Endpoint: `https://maps.googleapis.com/maps/api/geocode/json`
-   - Key Parameters: `address`, `key` (API key)
-   - Parse the response to extract latitude and longitude
-
-2. **NASA FIRMS API**
-   - Endpoint: `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${NASA_API_KEY}/VIIRS_SNPP_NRT/`
-   - Key Parameters: 
-     - `area`: Use a bounding box around the address coordinates
-     - `date`: Recent date range (e.g., last 7 days)
-   - Parse the CSV response to extract relevant wildfire data
-
-## Bonus Features
-- Implement caching for geocoding and wildfire data to reduce API calls
-- Add pagination to the GET /addresses endpoint
-- Implement a background job to periodically update wildfire data for stored addresses
-- Add unit and integration tests
-
-## Submission Instructions
-1. Fork this repository to start your application
-2. Implement the assignment according to the requirements
-3. Include in the top of the README.md file:
-   - Setup and run instructions
-   - API documentation
-   - Any assumptions or additional features you implemented
-4. Ensure your code is well-commented and follows best practices
-5. Share the repository with our GitHub account: [Your Company's GitHub Account]
-
-## Evaluation Criteria
-- Correct implementation of all required endpoints
-- Proper integration with external APIs
-- Effective use of NestJS features and TypeScript
-- Database design and ORM usage
-- Error handling and input validation
-- Code organization and clarity
-- API documentation quality
-
-## Time Limit
-Please complete this assignment within 7 days of receiving it. If you need more time, please let us know.
-
-Good luck! We look forward to reviewing your implementation.
-=======
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+### 3) Start Postgres (Docker)
+If you have `docker-compose.yml`:
 
 ```bash
-$ npm install
+$ docker compose up -d
 ```
 
-## Compile and run the project
+(Alternative) Run a standalone container:
 
 ```bash
-# development
-$ npm run start
+$ docker run -d --name delos-api-db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=delos \
+  -p 5432:5432 postgres:15
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
 ```
 
-## Run tests
+### 4) Run Migrations
+Generate a migration (when adding schema changes) or run existing migrations:
 
 ```bash
-# unit tests
+./node_modules/.bin/sequelize-cli db:migrate --config sequelize.config.js
+```
+
+## API
+
+### POST/addresses
+
+#### Body
+```bash
+{ "address": "1600 Amphitheatre Parkway, Mountain View, CA" }
+```
+
+#### Responses
+- `200 OK` returns the address record (includes geocode + wildfire fields)
+- `400 Bad Request` invalid payload (missing/empty address)
+- `422 Unprocessable Entity` address could not be geocoded
+- `502 Bad Gateway` external dependency failure (Google or FIRMS)
+
+
+Response example:
+```json
+{
+  "id": "0ffae53f-f5c6-4e14-8b51-8d5148fb11b3",
+  "address": "3327 20th Street, San Francisco, CA",
+  "addressNormalized": "3327 20th street, san francisco, ca",
+  "latitude": 37.7587473,
+  "longitude": -122.415302,
+  "geocodeRaw": {
+    "status": "OK",
+    "results": [
+      {
+        "types": [
+          "... truncated for brevity ..."        
+        ],
+        "address_components": ["...truncated for brevity..."]
+      }
+    ]
+  },
+  "wildfireData": {
+    "bbox": "",
+    "count": 0,
+    "records": [],
+    "rangeDays": 7
+  },
+  "updatedAt": "2026-01-26T20:22:52.457Z",
+  "createdAt": "2026-01-26T20:22:52.457Z",
+  "wildfireFetchedAt": null
+}
+```
+
+### GET /addresses
+
+Query params:
+- `limit` (default 20, max 100)
+- `offset` (default 0)
+
+Response example:
+```json
+{
+  "total": 1,
+  "limit": 20,
+  "offset": 0,
+  "items": [
+    {
+      "id": "4c814044-ea93-481e-8a93-ee180e58a68a",
+      "address": "1600 Amphitheatre Parkway, Mountain View, CA",
+      "latitude": 0,
+      "longitude": 0
+    }
+  ]
+}
+```
+
+### GET /addresses/:id
+
+Fetch a single address by id.
+
+Responses
+
+- `200 OK` record found
+- `404 Not Found` no record exists
+
+Response example:
+```json
+{
+  "id": "0ffae53f-f5c6-4e14-8b51-8d5148fb11b3",
+  "address": "3327 20th Street, San Francisco, CA",
+  "latitude": 37.7587473,
+  "longitude": -122.415302,
+  "wildfireData": {
+    "bbox": "",
+    "count": 0,
+    "records": [],
+    "rangeDays": 7
+  },
+  "geocodeRaw": {
+    "status": "OK",
+    "results": [
+      {
+        "types": [
+          "... truncated for brevity ..."
+        ],
+        "address_components": ["...truncated for brevity..."]
+      }
+    ]
+  },
+  "wildfireFetchedAt": null,
+  "createdAt": "2026-01-26T20:22:52.457Z",
+  "updatedAt": "2026-01-26T20:22:52.457Z",
+  "addressNormalized": "3327 20th street, san francisco, ca"
+}
+```
+
+### Caching behavior
+
+- The API normalizes the incoming address and checks the DB first (`addressNormalized` is UNIQUE).
+- Cache hit: returns stored record without calling external services.
+- Cache miss: calls Google Geocoding + FIRMS, persists results, and returns the record.
+
+## Tests
+
+```bash
 $ npm run test
-
-# e2e tests
 $ npm run test:e2e
-
-# test coverage
 $ npm run test:cov
 ```
+## Key files
 
-## Deployment
+- `src/addresses/addresses.controller.ts` — endpoints + request validation
+- `src/addresses/addresses.service.ts` — business logic + external integrations
+- `src/database/migrations` — Sequelize migrations
+- `sequelize.config.js` — Sequelize CLI config
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## API Overview
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+- `POST /addresses` — create a new address
+  - Body: `{ "address": "1600 Amphitheatre Parkway, Mountain View, CA" }`
+  - Validates the payload and returns `400 Bad Request` for missing/empty address.
+  - On success returns the created address record (including geocode and wildfire data).
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+- `GET /addresses` — list addresses with pagination
+  - Query params: `limit, offset`
+  - Defaults: `limit=20` (max 100), `offset=0`
+- `GET /addresses/:id` — fetch an address by id
+  - Validates `id` param and returns `400 Bad Request` when missing/invalid.
+  - Returns `404 Not Found` when no record exists for the given id.
+
+## Important Files
+- `src/addresses/addresses.controller.ts` — HTTP endpoints and validation/logging
+- `src/addresses/addresses.service.ts` — main business logic (create, find, fetch external APIs)
+- `src/database/migrations` — Sequelize migrations
+- `sequelize.config.js` — Sequelize CLI configuration
+
+## Logging and Errors
+
+- Controller methods validate inputs and log errors before rethrowing.
+- Service methods perform runtime checks (for example: confirming records were created and have an `id`) and throw `InternalServerErrorException` on unexpected failures.
+- Not found and validation cases use `NotFoundException` and `BadRequestException` accordingly.
+
+## Optional: Background Job (Wildfire Refresh)
+
+This project includes an optional scheduled background job that periodically refreshes wildfire data for stored addresses.
+
+### Overview
+- Implemented using `@nestjs/schedule` and a cron-based job.
+- Runs automatically while the application is running.
+- Refreshes wildfire data for addresses whose data is considered stale.
+
+### Behavior
+- Runs every **6 hours**.
+- Selects addresses where:
+  - `wildfireFetchedAt` is `NULL`, or
+  - `wildfireFetchedAt` is older than a configurable threshold.
+- Processes addresses in **small batches** to limit external API usage.
+- Updates `wildfireData` and `wildfireFetchedAt` per address.
+- Logs failures per address without stopping the entire job.
+
+### Configuration
+The job can be tuned using the following environment variables:
+
+```env
+WILDFIRE_REFRESH_STALE_HOURS=24   # default: 24
+WILDFIRE_REFRESH_BATCH_SIZE=25   # default: 25
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Debugging & Development tips
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- Use `npm run start:dev` for automatic restarts.
+- Check logs for detailed context when external API calls fail (Google Geocoding or FIRMS).
+- When throwing exceptions inside a `try` block, ensure you don't immediately catch them locally — perform service call, handle errors, then run existence checks outside the `try` to avoid "throw of exception caught locally" warnings.
 
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
 ## License
 
