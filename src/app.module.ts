@@ -2,14 +2,18 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AddressesModule } from './addresses/addresses.module';
+import { JobsModule } from './jobs/jobs.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
-
+    AddressesModule,
+    JobsModule,
     SequelizeModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

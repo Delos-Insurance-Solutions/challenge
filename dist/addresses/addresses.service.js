@@ -13,12 +13,14 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 var AddressesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.AddressesService = void 0;
 const common_1 = require("@nestjs/common");
 const sequelize_1 = require("@nestjs/sequelize");
 const address_model_1 = require("./address.model");
 const address_normalize_1 = require("./address-normalize");
 const geocoding_service_1 = require("../integrations/google/geocoding.service");
 const firms_service_1 = require("../integrations/firms/firms.service");
+const sequelize_2 = require("sequelize");
 let AddressesService = AddressesService_1 = class AddressesService {
     addressModel;
     googleGeocodingService;
@@ -175,12 +177,40 @@ let AddressesService = AddressesService_1 = class AddressesService {
         }
         return address;
     }
+    async refreshWildfiresForStaleAddresses(opts) {
+        const { staleBefore, limit } = opts;
+        const where = {
+            latitude: { [sequelize_2.Op.ne]: null },
+            longitude: { [sequelize_2.Op.ne]: null },
+            [sequelize_2.Op.or]: [
+                { wildfireFetchedAt: null },
+                { wildfireFetchedAt: { [sequelize_2.Op.lt]: staleBefore } },
+            ],
+        };
+        const rows = await this.addressModel.findAll({ where, order: [['wildfireFetchedAt', 'ASC']], limit });
+        if (!rows.length)
+            return 0;
+        let updated = 0;
+        for (const addr of rows) {
+            try {
+                const wildfire = await this.firmsService.fetchWildfires(addr.latitude, addr.longitude);
+                addr.wildfireData = wildfire;
+                addr.wildfireFetchedAt = new Date();
+                await addr.save();
+                updated++;
+            }
+            catch (err) {
+                this.logger.warn(`Job refresh failed for addressId=${addr.id}: ${err?.message ?? String(err)}`);
+            }
+        }
+        return updated;
+    }
 };
-AddressesService = AddressesService_1 = __decorate([
+exports.AddressesService = AddressesService;
+exports.AddressesService = AddressesService = AddressesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, sequelize_1.InjectModel)(address_model_1.Address)),
     __metadata("design:paramtypes", [Object, geocoding_service_1.GoogleGeocodingService,
         firms_service_1.FirmsService])
 ], AddressesService);
-exports.default = AddressesService;
 //# sourceMappingURL=addresses.service.js.map

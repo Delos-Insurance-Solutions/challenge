@@ -9,7 +9,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import AddressesService from './addresses.service';
+import { AddressesService } from './addresses.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 
 // Addresses Controller

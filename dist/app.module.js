@@ -11,16 +11,21 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const sequelize_1 = require("@nestjs/sequelize");
 const addresses_module_1 = require("./addresses/addresses.module");
+const jobs_module_1 = require("./jobs/jobs.module");
+const schedule_1 = require("@nestjs/schedule");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            schedule_1.ScheduleModule.forRoot(),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 envFilePath: '.env',
             }),
+            addresses_module_1.AddressesModule,
+            jobs_module_1.JobsModule,
             sequelize_1.SequelizeModule.forRootAsync({
                 inject: [config_1.ConfigService],
                 useFactory: (config) => ({

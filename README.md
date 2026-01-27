@@ -96,35 +96,7 @@ Response example:
     "results": [
       {
         "types": [
-          "street_address",
-          "subpremise"
-        ],
-        "geometry": {
-          "location": {
-            "lat": 37.7587473,
-            "lng": -122.415302
-          },
-          "viewport": {
-            "northeast": {
-              "lat": 37.7601590302915,
-              "lng": -122.4139766197085
-            },
-            "southwest": {
-              "lat": 37.7574610697085,
-              "lng": -122.4166745802915
-            }
-          },
-          "location_type": "ROOFTOP"
-        },
-        "place_id": "ChIJoeZigTl-j4ARzSzblDV4IvE",
-        "formatted_address": "3327 20th St, San Francisco, CA 94110, USA",
-        "navigation_points": [
-          {
-            "location": {
-              "latitude": 37.75881,
-              "longitude": -122.4153431
-            }
-          }
+          "... truncated for brevity ..."        
         ],
         "address_components": ["...truncated for brevity..."]
       }
@@ -192,35 +164,7 @@ Response example:
     "results": [
       {
         "types": [
-          "street_address",
-          "subpremise"
-        ],
-        "geometry": {
-          "location": {
-            "lat": 37.7587473,
-            "lng": -122.415302
-          },
-          "viewport": {
-            "northeast": {
-              "lat": 37.7601590302915,
-              "lng": -122.4139766197085
-            },
-            "southwest": {
-              "lat": 37.7574610697085,
-              "lng": -122.4166745802915
-            }
-          },
-          "location_type": "ROOFTOP"
-        },
-        "place_id": "ChIJoeZigTl-j4ARzSzblDV4IvE",
-        "formatted_address": "3327 20th St, San Francisco, CA 94110, USA",
-        "navigation_points": [
-          {
-            "location": {
-              "latitude": 37.75881,
-              "longitude": -122.4153431
-            }
-          }
+          "... truncated for brevity ..."
         ],
         "address_components": ["...truncated for brevity..."]
       }
@@ -279,20 +223,37 @@ $ npm run test:cov
 - Service methods perform runtime checks (for example: confirming records were created and have an `id`) and throw `InternalServerErrorException` on unexpected failures.
 - Not found and validation cases use `NotFoundException` and `BadRequestException` accordingly.
 
+## Optional: Background Job (Wildfire Refresh)
+
+This project includes an optional scheduled background job that periodically refreshes wildfire data for stored addresses.
+
+### Overview
+- Implemented using `@nestjs/schedule` and a cron-based job.
+- Runs automatically while the application is running.
+- Refreshes wildfire data for addresses whose data is considered stale.
+
+### Behavior
+- Runs every **6 hours**.
+- Selects addresses where:
+  - `wildfireFetchedAt` is `NULL`, or
+  - `wildfireFetchedAt` is older than a configurable threshold.
+- Processes addresses in **small batches** to limit external API usage.
+- Updates `wildfireData` and `wildfireFetchedAt` per address.
+- Logs failures per address without stopping the entire job.
+
+### Configuration
+The job can be tuned using the following environment variables:
+
+```env
+WILDFIRE_REFRESH_STALE_HOURS=24   # default: 24
+WILDFIRE_REFRESH_BATCH_SIZE=25   # default: 25
+```
+
 ## Debugging & Development tips
 
 - Use `npm run start:dev` for automatic restarts.
 - Check logs for detailed context when external API calls fail (Google Geocoding or FIRMS).
 - When throwing exceptions inside a `try` block, ensure you don't immediately catch them locally — perform service call, handle errors, then run existence checks outside the `try` to avoid "throw of exception caught locally" warnings.
-
-## Deployment
-See NestJS deployment docs: https://docs.nestjs.com/deployment
-
-If using Mau (optional):
-```bash
-npm install -g @nestjs/mau
-mau deploy
-```
 
 ## Support
 

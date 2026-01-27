@@ -1,7 +1,7 @@
 import { Address } from './address.model';
 import { GoogleGeocodingService } from '../integrations/google/geocoding.service';
 import { FirmsService } from '../integrations/firms/firms.service';
-declare class AddressesService {
+export declare class AddressesService {
     private readonly addressModel;
     private readonly googleGeocodingService;
     private readonly firmsService;
@@ -23,5 +23,8 @@ declare class AddressesService {
         items: Address[];
     }>;
     findById(id: string): Promise<Address>;
+    refreshWildfiresForStaleAddresses(opts: {
+        staleBefore: Date;
+        limit: number;
+    }): Promise<number>;
 }
-export default AddressesService;

@@ -11,6 +11,7 @@ import { Address } from './address.model';
 import { normalizeAddress } from './address-normalize';
 import { GoogleGeocodingService } from '../integrations/google/geocoding.service';
 import { FirmsService } from '../integrations/firms/firms.service';
+import {Op} from "sequelize";
 
 type GeocodeLocation = { lat?: number | string; lng?: number | string };
 type GeocodeResultItem = { geometry?: { location?: GeocodeLocation } };
@@ -30,7 +31,7 @@ type WildfireData = {
 };
 
 @Injectable()
-class AddressesService {
+export class AddressesService {
   private readonly logger = new Logger(AddressesService.name);
 
   constructor(
@@ -339,6 +340,38 @@ class AddressesService {
     }
     return address;
   }
-}
 
-export default AddressesService;
+  async refreshWildfiresForStaleAddresses(opts: { staleBefore: Date; limit: number }) {
+    const { staleBefore, limit } = opts;
+
+    const where: any = {
+      latitude: { [Op.ne]: null },
+      longitude: { [Op.ne]: null },
+      [Op.or]: [
+        { wildfireFetchedAt: null },
+        { wildfireFetchedAt: { [Op.lt]: staleBefore } },
+      ],
+    };
+
+    const rows = await this.addressModel.findAll({ where, order: [['wildfireFetchedAt', 'ASC']], limit });
+    
+    if (!rows.length) return 0;
+
+    let updated = 0;
+
+    for (const addr of rows) {
+      try {
+        const wildfire = await this.firmsService.fetchWildfires(addr.latitude!, addr.longitude!);
+        addr.wildfireData = wildfire as any;
+        addr.wildfireFetchedAt = new Date();
+        await addr.save();
+        updated++;
+      } catch (err: any) {
+        // Don’t fail the whole job because one address fails
+        this.logger.warn(`Job refresh failed for addressId=${addr.id}: ${err?.message ?? String(err)}`);
+      }
+    }
+
+    return updated;
+  }
+}
