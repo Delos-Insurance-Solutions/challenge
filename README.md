@@ -5,6 +5,8 @@ Addresses are normalized and cached in PostgreSQL to avoid repeated external cal
 
 ## Features
 - `POST /addresses` creates an address (DB-first cache by `addressNormalized`)
+- `GET /addresses` gets addresses (DB-first pagination `limit` and `offset)
+- `GET /addresses/:id` gets an address by id (DB-first address one by `id`)
 - Google Geocoding integration (lat/lng + raw response stored)
 - NASA FIRMS wildfire lookup (CSV parsed and stored on the address record)
 - PostgreSQL + Sequelize (`sequelize-typescript`)
