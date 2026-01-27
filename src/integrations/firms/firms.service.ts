@@ -52,19 +52,7 @@ export class FirmsService {
     return String(res.data ?? '');
   }
 
-  /**
-   * Parse CSV text into an array of objects.
-   *
-   * @param csvText - The CSV text to parse
-   * @returns return CSV with headers (acq_date, acq_time, latitude, longitude, confidence, etc.)
-   * @example Saves it as a string to not add weird Date/Map objects to JSONB./
-   * const address = await controller.create({ address: "1600 Amphitheatre Parkway, Mountain View, CA" });
-   */
-  private parseCsv(csvText: string): FirmsRecordJson[] {
-    if (!csvText.trim()) return [];
-    const records = parse(csvText, { columns: true, skip_empty_lines: true });
-    return records as FirmsRecordJson[];
-  }
+  
 
   /**
    * Fetch wildfire data from FIRMS API.
@@ -76,7 +64,7 @@ export class FirmsService {
    */
   async fetchWildfires(lat: number, lng: number) {
     const mapKey = process.env.FIRMS_MAP_KEY;
-    if (!mapKey) throw new Error('FIRMS_MAP_KEY missing');
+    if (!mapKey) throw new BadGatewayException('FIRMS_MAP_KEY missing');
 
     const source = process.env.FIRMS_SOURCE || 'VIIRS_SNPP_NRT';
     const delta = Number(process.env.FIRMS_BBOX_DELTA || 0.1);
@@ -109,4 +97,41 @@ export class FirmsService {
       throw new BadGatewayException('Failed to fetch wildfire data from FIRMS');
     }
   }
+  
+  /**
+   * Parse CSV text into an array of objects.
+   *
+   * @param csvText - The CSV text to parse
+   * @returns return CSV with headers (acq_date, acq_time, latitude, longitude, confidence, etc.)
+   * @example Saves it as a string to not add weird Date/Map objects to JSONB./
+   * const address = await controller.create({ address: "1600 Amphitheatre Parkway, Mountain View, CA" });
+   */
+  private parseCsv(csvText: string) {
+    if (!csvText || !csvText.trim()) return [];
+
+    const lines = csvText.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    const records: any[] = [];
+
+    for (const line of lines.slice(1)) {
+      if (!line.trim()) continue;
+
+      const values = line.split(',').map(v => v.trim());
+      const obj: any = {};
+
+      headers.forEach((h, i) => {
+        obj[h] = values[i] ?? '';
+      });
+
+      // optional: ignore rows without lat/lng
+      if (!obj.latitude || !obj.longitude) continue;
+
+      records.push(obj);
+    }
+
+    return records;
+  }
+
 }
