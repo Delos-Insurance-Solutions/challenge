@@ -1,22 +1,18 @@
 import { Test } from '@nestjs/testing';
-import { UnprocessableEntityException } from '@nestjs/common';
+import {InternalServerErrorException, UnprocessableEntityException} from '@nestjs/common';
 import { getModelToken } from '@nestjs/sequelize';
 
-import AddressesService from './addresses.service';
+import { AddressesService } from './addresses.service';
 import { Address } from './address.model';
-
 import { GoogleGeocodingService } from '../integrations/google/geocoding.service';
 import { FirmsService } from '../integrations/firms/firms.service';
 
 describe('AddressesService', () => {
   let service: AddressesService;
 
-  // Mocks
   const addressModelMock = {
     findOne: jest.fn(),
     create: jest.fn(),
-    update: jest.fn(),
-    findAndCountAll: jest.fn(),
   };
 
   const googleMock = {
@@ -43,36 +39,78 @@ describe('AddressesService', () => {
   });
 
   it('returns cached address (cache hit) and does not call external services', async () => {
-    // ARRANGE
     const cached = {
       id: 'uuid-1',
       address: '1600 Amphitheatre Parkway, Mountain View, CA',
-      addressNormalized: '1600 amphitheatre parkway mountain view ca',
+      addressNormalized: '1600 amphitheatre parkway, mountain view, ca',
       latitude: 37.422,
       longitude: -122.084,
     };
-    const address = '1600 Amphitheatre Parkway, Mountain View, CA';
+
     addressModelMock.findOne.mockResolvedValue(cached);
 
-    // ACT
-    const result = await service.create(address);
+    const result = await service.create('1600 Amphitheatre Parkway, Mountain View, CA');
 
-    // ASSERT
-    expect(result.address).toBe(address);
+    expect(result).toEqual(cached);
     expect(addressModelMock.findOne).toHaveBeenCalledTimes(1);
     expect(googleMock.geocode).not.toHaveBeenCalled();
     expect(firmsMock.fetchWildfires).not.toHaveBeenCalled();
   });
 
-  it('throws 422 when address is not geocodable', async () => {
+  it('creates a new address (cache miss), calls Google + FIRMS, and saves wildfire data', async () => {
     addressModelMock.findOne.mockResolvedValue(null);
-    googleMock.geocode.mockResolvedValue({ results: [] });
 
-    await expect(service.create('some weird address')).rejects.toBeInstanceOf(
-      UnprocessableEntityException,
+    googleMock.geocode.mockResolvedValue({
+      lat: 37.422,
+      lng: -122.084,
+      raw: { results: [{ geometry: { location: { lat: 37.422, lng: -122.084 } } }] },
+    });
+
+    firmsMock.fetchWildfires.mockResolvedValue({
+      count: 2,
+      records: [{ foo: '1' }, { foo: '2' }],
+      bbox: 'bbox',
+      rangeDays: 7,
+      source: 'VIIRS_SNPP_NRT',
+    });
+
+    const addressInstance = {
+      id: 'uuid-new',
+      address: '1600 Amphitheatre Parkway, Mountain View, CA',
+      addressNormalized: '1600 amphitheatre parkway, mountain view, ca',
+      latitude: 37.422,
+      longitude: -122.084,
+      wildfireData: { count: 0, records: [], bbox: '', rangeDays: 7 },
+      wildfireFetchedAt: null as any,
+      save: jest.fn().mockResolvedValue(true),
+    };
+
+    addressModelMock.create.mockResolvedValue(addressInstance);
+
+    const result = await service.create('1600 Amphitheatre Parkway, Mountain View, CA');
+
+    expect(addressModelMock.findOne).toHaveBeenCalledTimes(1);
+    expect(googleMock.geocode).toHaveBeenCalledTimes(1);
+    expect(firmsMock.fetchWildfires).toHaveBeenCalledWith(37.422, -122.084);
+
+    expect(addressInstance.save).toHaveBeenCalledTimes(1);
+    expect(result.wildfireData.count).toBe(2);
+    expect(result.wildfireFetchedAt).toBeInstanceOf(Date);
+  });
+
+  it('throws 422 when Google service throws UnprocessableEntityException', async () => {
+    addressModelMock.findOne.mockResolvedValue(null);
+
+    googleMock.geocode.mockRejectedValue(
+        new InternalServerErrorException('Address could not be geocoded'),
+    );
+
+    await expect(service.create('weird address')).rejects.toBeInstanceOf(
+        InternalServerErrorException,
     );
 
     expect(googleMock.geocode).toHaveBeenCalledTimes(1);
     expect(firmsMock.fetchWildfires).not.toHaveBeenCalled();
+    expect(addressModelMock.create).not.toHaveBeenCalled();
   });
 });
